@@ -3,3 +3,4 @@ pub mod telemetry;
 pub mod configuration;
 pub mod routes;
 pub mod crypto;
+pub mod model;
