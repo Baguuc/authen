@@ -5,3 +5,4 @@ pub mod routes;
 pub mod crypto;
 pub mod model;
 pub mod utils;
+pub mod clients;
