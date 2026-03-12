@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use actix_web::{HttpResponse, http::StatusCode, web::{Data, Form, Json}};
+use actix_web::{HttpResponse, http::StatusCode, web::{Data, Form}};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use sqlx::{Connection, PgPool, error::ErrorKind};
@@ -50,7 +50,7 @@ impl actix_web::ResponseError for RegistrationError {
 /// User registration endpoint available @ POST /api/users
 #[instrument(name = "Registering a user", skip(db_conn, config, email_client))]
 pub async fn post_users(
-    Json(form_body): Json<FormData>,
+    Form(form_body): Form<FormData>,
     config: Data<Settings>,
     db_conn: Data<PgPool>,
     email_client: Data<EmailClient>

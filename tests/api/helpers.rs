@@ -1,4 +1,4 @@
-use authen::{clients::email::EmailClient, configuration::{DatabaseSettings, Settings}, model::email::Email, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
+use authen::{configuration::{DatabaseSettings, Settings}, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
 use reqwest::{Client, Response};
 use secrecy::Secret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -9,7 +9,7 @@ use uuid::Uuid;
 static TRACING: LazyLock<()> = LazyLock::new(|| {
     let default_filter_level = "info".to_string();
     let subscriber_name = "test".to_string();
-    
+
     if std::env::var("TEST_LOG").is_ok() {
         let subscriber = get_tracing_subscriber(subscriber_name, default_filter_level, std::io::stdout);
         init_tracing_subscriber(subscriber);
@@ -40,7 +40,8 @@ impl TestApp {
         http_client
             // Use the returned application address
             .post(&format!("{}/api/users", address))
-            .json(&body_map)
+            .header("content-type", "application/x-www-form-urlencoded")
+            .body(serde_urlencoded::to_string(&body_map).unwrap())
             .send()
             .await
     }
