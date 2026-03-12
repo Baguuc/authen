@@ -2,7 +2,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use reqwest::{Method, header::{HeaderMap, HeaderName, HeaderValue}};
 
-use crate::configuration::{EmailSendEnpointJsonFieldsSettings, EmailServerSettings};
+use crate::{configuration::{EmailSendEnpointJsonFieldsSettings, EmailServerSettings}, model::email::Email};
 
 pub struct EmailClient {
     http_client: reqwest::Client,
@@ -42,10 +42,10 @@ impl EmailClient {
     }
 
     /// Send an email from created EmailClient instance.
-    pub async fn send_email(&self, from: String, to: String, subject: String, text_body: String, html_body: String) -> Result<(), reqwest::Error> {
+    pub async fn send_email(&self, from: Email, to: Email, subject: String, text_body: String, html_body: String) -> Result<(), reqwest::Error> {
         let mut body_map = HashMap::new();
-        body_map.insert(self.json_fields_map.from.clone(), from);
-        body_map.insert(self.json_fields_map.to.clone(), to);
+        body_map.insert(self.json_fields_map.from.clone(), from.as_ref().to_string());
+        body_map.insert(self.json_fields_map.to.clone(), to.as_ref().to_string());
         body_map.insert(self.json_fields_map.subject.clone(), subject);
         body_map.insert(self.json_fields_map.text_body.clone(), text_body);
         body_map.insert(self.json_fields_map.html_body.clone(), html_body);
