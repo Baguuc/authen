@@ -1,6 +1,6 @@
 use crate::clients::email::EmailClient;
 use crate::configuration::{DatabaseSettings, EmailServerSettings, Settings};
-use crate::routes::health_check;
+use crate::routes::api::{health_check, post_users};
 use actix_web::dev::Server;
 use actix_web::web::Data;
 use actix_web::{web, App, HttpServer};
@@ -58,18 +58,19 @@ impl Application {
         listener: TcpListener,
         configuration: Settings
     ) -> Result<Server, anyhow::Error> {
-        let base_url = Data::new(ApplicationBaseUrl(configuration.application.base_url));
+        let config = Data::new(configuration.clone());
         let db_pool = Data::new(Self::database_connection(configuration.database));
         let email_client = Data::new(Self::email_client(configuration.email.server));
         
         let server = HttpServer::new(move || {
             App::new()
                 .wrap(TracingLogger::default())
-                .app_data(base_url.clone())
+                .app_data(config.clone())
                 .app_data(db_pool.clone())
                 .app_data(email_client.clone())
                 .service(web::scope("/api")
                     .route("/health", web::get().to(health_check))
+                    .route("/users", web::post().to(post_users))
                 )
         })
         .listen(listener)?

@@ -3,7 +3,7 @@ use validator::ValidateEmail;
 
 /// The model representing a valid user email.
 /// Used for parsing emails.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Email(String);
 
 impl Email {

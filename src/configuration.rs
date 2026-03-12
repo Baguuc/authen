@@ -2,6 +2,8 @@ use secrecy::{ExposeSecret, Secret};
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
+use crate::model::email::Email;
+
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
@@ -71,7 +73,8 @@ impl DatabaseSettings {
 
 #[derive(serde::Deserialize, Clone)]
 pub struct EmailSettings {
-    pub server: EmailServerSettings
+    pub server: EmailServerSettings,
+    pub sender: Email
 }
 
 #[derive(serde::Deserialize, Clone)]

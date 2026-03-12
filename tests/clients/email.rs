@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use authen::{clients::email::EmailClient, configuration::Settings};
+use authen::{clients::email::EmailClient, configuration::Settings, model::email::Email};
 use fake::{Fake, faker::{internet::en::SafeEmail, lorem::en::Sentence}};
 use wiremock::{Mock, MockServer, ResponseTemplate, http::Method, matchers::{header, method, path}};
 
@@ -30,8 +30,9 @@ pub async fn email_client_sends_requests() {
 
     // Act
     let result = email_client.send_email(
-        SafeEmail().fake(),
-        SafeEmail().fake(),
+        // if unwrap panics, we know that either validation or generation logic is wrong.
+        Email::parse(SafeEmail().fake()).unwrap(),
+        Email::parse(SafeEmail().fake()).unwrap(),
         Sentence(1..10).fake(),
         Sentence(1..10).fake(),
         Sentence(1..10).fake()

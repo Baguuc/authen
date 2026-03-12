@@ -7,7 +7,7 @@ struct ResponseBody {
 
 #[tokio::test]
 async fn health_check_returns_200_and_ok_msg() {
-    let app = spawn_app().await;
+    let app = spawn_app(None).await;
     let client = reqwest::Client::new();
 
     // Act

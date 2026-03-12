@@ -1,13 +1,15 @@
-use authen::{configuration::{DatabaseSettings, Settings}, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
+use authen::{clients::email::EmailClient, configuration::{DatabaseSettings, Settings}, model::email::Email, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
+use reqwest::{Client, Response};
 use secrecy::Secret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-use std::sync::LazyLock;
+use std::{collections::HashMap, sync::LazyLock};
 use uuid::Uuid;
 
 // Ensure that the `tracing` stack is only initialised once using `once_cell`
 static TRACING: LazyLock<()> = LazyLock::new(|| {
     let default_filter_level = "info".to_string();
     let subscriber_name = "test".to_string();
+    
     if std::env::var("TEST_LOG").is_ok() {
         let subscriber = get_tracing_subscriber(subscriber_name, default_filter_level, std::io::stdout);
         init_tracing_subscriber(subscriber);
@@ -25,10 +27,26 @@ pub struct TestApp {
 }
 
 impl TestApp {
-   
+    /// Send the request to POST /api/users route for testing purposes
+    pub async fn post_users(http_client: &Client, address: &String, email: Option<String>, password: Option<String>) -> Result<Response, reqwest::Error> {
+        let mut body_map = HashMap::new();
+        if let Some(email) = email {
+            body_map.insert("email", email);
+        };
+        if let Some(password) = password {
+            body_map.insert("password", password);
+        };
+        
+        http_client
+            // Use the returned application address
+            .post(&format!("{}/api/users", address))
+            .json(&body_map)
+            .send()
+            .await
+    }
 }
 
-pub async fn spawn_app() -> TestApp {
+pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
     LazyLock::force(&TRACING);
 
     // Randomise configuration to ensure test isolation
@@ -38,6 +56,12 @@ pub async fn spawn_app() -> TestApp {
         c.database.database_name = Uuid::new_v4().to_string();
         // Use a random OS port
         c.application.port = 0;
+
+        // override the email server config to use wiremock's
+        if let Some(url) = override_email_server_url {
+            c.email.server.base_url = url;
+        }
+
         c
     };
 
@@ -49,7 +73,7 @@ pub async fn spawn_app() -> TestApp {
         .await
         .expect("Failed to build application.");
     let application_port = application.port();
-    let database_connection = Application::database_connection(&configuration.database);
+    let database_connection = Application::database_connection(configuration.database);
     let _ = tokio::spawn(application.run());
 
     let client = reqwest::Client::builder()

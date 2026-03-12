@@ -6,3 +6,4 @@ pub mod crypto;
 pub mod model;
 pub mod utils;
 pub mod clients;
+pub mod commands;
