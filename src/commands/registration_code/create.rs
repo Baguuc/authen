@@ -1,18 +1,26 @@
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
+use crate::{crypto::hash, utils::generation::generate_confirmation_token};
 
-use crate::crypto::hash;
+#[derive(thiserror::Error, Debug)]
+pub enum RegistractionCodeCreationError {
+    #[error("Database error: {0}")]
+    Sqlx(#[from] sqlx::Error),
+    #[error("Cannot generate the token")]
+    TokenGenerationError
+}
 
 /// Command to generate a new registration code and save it in the database, return the id of confirmation and the code.
 #[instrument(name = "Creating a registration code", skip(db_conn))]
-pub async fn create_registration_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, user_id: Uuid) -> Result<(Uuid, String), sqlx::Error> {
+pub async fn create_registration_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, user_id: Uuid) -> Result<(Uuid, String), RegistractionCodeCreationError> {
     let mut db_conn = db_conn.acquire().await?;
 
     tracing::info!("Generating a registration code.");
     
     let id = Uuid::new_v4();
-    let code = Uuid::new_v4().to_string();
+    let code = generate_confirmation_token(6, b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+        .ok_or(RegistractionCodeCreationError::TokenGenerationError)?;
     // can unwrap because the argon errors are generally environment based rather than input based.
     let hashed = hash(&code).unwrap();
 
@@ -29,5 +37,5 @@ pub async fn create_registration_code<'a, A: Acquire<'a, Database = Postgres>>(d
     
     tracing::info!("Saved the registration code.");
 
-    Ok(result)
+    Ok((result.0, code))
 }
