@@ -1,3 +1,4 @@
+use actix_web::body;
 use authen::{configuration::{DatabaseSettings, Settings}, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
 use reqwest::{Client, Response};
 use secrecy::Secret;
@@ -42,6 +43,28 @@ impl TestApp {
             .post(&format!("{}/api/users", address))
             .header("content-type", "application/x-www-form-urlencoded")
             .body(serde_urlencoded::to_string(&body_map).unwrap())
+            .send()
+            .await
+    }
+
+    /// Send the request to POST /api/confirmations/registration/{} route for testing purposes
+    pub async fn post_registrations_confirmation(
+        http_client: &Client,
+        address: &String,
+        confirmation_id: String,
+        confirmation_code: Option<String>
+    ) -> Result<Response, reqwest::Error> {
+        let mut body_map = HashMap::new();
+
+        if let Some(confirmation_code) = confirmation_code {
+            body_map.insert("code", confirmation_code);
+        };
+        
+        http_client
+            // Use the returned application address
+            .post(&format!("{}/api/confirmations/registration/{}", address, confirmation_id.to_string()))
+            .header("content-type", "application/json")
+            .json(&body_map)
             .send()
             .await
     }

@@ -4,8 +4,6 @@ use uuid::Uuid;
 
 #[derive(thiserror::Error, Debug)]
 pub enum GetUserIdFromRegistrationIdError {
-    #[error("Not exists.")]
-    NotExists,
     #[error("Database error: {0}")]
     Sqlx(#[from] sqlx::Error)
 }
@@ -20,8 +18,7 @@ pub async fn get_user_id_from_registration_id<'a, A: Acquire<'a, Database = Post
     let row: (Uuid,) = sqlx::query_as(sql)
         .bind(registration_id)
         .fetch_one(&mut *db_conn)
-        .await
-        .map_err(|_| GetUserIdFromRegistrationIdError::NotExists)?;
+        .await?;
 
     Ok(row.0)
 }

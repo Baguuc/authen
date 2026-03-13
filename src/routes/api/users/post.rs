@@ -7,7 +7,7 @@ use sqlx::{Connection, PgPool, error::ErrorKind};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{clients::email::EmailClient, commands::{create_registration_code, create_user}, configuration::Settings, model::email::Email, utils::error::log_map};
+use crate::{clients::email::EmailClient, command::{create_registration_code, create_user}, configuration::Settings, model::email::Email, utils::error::log_map};
 
 #[derive(serde::Serialize)]
 pub struct ResponseBody {
