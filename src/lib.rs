@@ -7,3 +7,4 @@ pub mod model;
 pub mod utils;
 pub mod clients;
 pub mod commands;
+pub mod consts;
