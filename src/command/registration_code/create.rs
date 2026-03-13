@@ -19,7 +19,7 @@ pub async fn create_registration_code<'a, A: Acquire<'a, Database = Postgres>>(d
     tracing::info!("Generating a registration code.");
     
     let id = Uuid::new_v4();
-    let code = generate_confirmation_token(6, b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+    let code = generate_confirmation_token()
         .ok_or(RegistractionCodeCreationError::TokenGenerationError)?;
     // can unwrap because the argon errors are generally environment based rather than input based.
     let hashed = hash(&code).unwrap();
