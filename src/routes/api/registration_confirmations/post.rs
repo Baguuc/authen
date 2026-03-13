@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{command::{activate_user, delete_registration_code}, model::confirmation_code::ConfirmationCode, query::{get_user_id::get_user_id_from_registration_id, verify::RegistrationCodeVerifyError, verify_registration_code}, utils::error::log_map};
+use crate::{command::{activate_user, delete_registration_code}, error::{api::ConfirmationError, query::RegistrationCodeVerifyError}, model::confirmation_code::ConfirmationCode, query::{get_user_id::get_user_id_from_registration_id, verify_registration_code}, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's path.
 #[derive(Deserialize, Debug)]
@@ -18,30 +18,6 @@ pub struct PathData {
 #[derive(Deserialize, Debug)]
 pub struct JsonData {
     code: ConfirmationCode
-}
-
-/// Enum modelling errors that can occur during registration confirmation.
-#[derive(Debug, thiserror::Error)]
-pub enum ConfirmationError {
-    /// Confirmation with provided ID do not exists.
-    #[error("CONFIRMATION_NOT_EXISTS")]
-    ConfirmationNotExists,
-    /// Invalid code
-    #[error("INVALID_CODE")]
-    InvalidCode,
-    /// Unexpected error happened.
-    #[error("UNEXPECTED_ERROR")]
-    UnexpectedError,
-}
-
-impl actix_web::ResponseError for ConfirmationError {
-    fn status_code(&self) -> actix_web::http::StatusCode {
-        match self {
-            Self::ConfirmationNotExists => StatusCode::NOT_FOUND,
-            Self::InvalidCode => StatusCode::FORBIDDEN,
-            Self::UnexpectedError => StatusCode::INTERNAL_SERVER_ERROR
-        }
-    }
 }
 
 /// User registration confirmation endpoint available @ POST /api/confirmations/registration/{}

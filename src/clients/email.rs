@@ -2,7 +2,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use reqwest::{Method, header::{HeaderMap, HeaderName, HeaderValue}};
 
-use crate::{configuration::{EmailSendEnpointJsonFieldsSettings, EmailServerSettings}, model::email::Email};
+use crate::{configuration::{EmailSendEnpointJsonFieldsSettings, EmailServerSettings}, error::client::EmailClientConstructionError, model::email::Email};
 
 pub struct EmailClient {
     http_client: reqwest::Client,
@@ -59,14 +59,4 @@ impl EmailClient {
             .await
             .map(|_| ())
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum EmailClientConstructionError {
-    #[error("Invalid method: {0}")]
-    InvalidMethod(String),
-    #[error("Invalid header: {0}")]
-    InvalidHeaderName(String),
-    #[error("Invalid header: {0}")]
-    InvalidHeaderValue(String),
 }

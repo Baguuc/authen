@@ -7,7 +7,7 @@ use sqlx::{Connection, PgPool, error::ErrorKind};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{clients::email::EmailClient, command::{create_registration_code, create_user}, configuration::Settings, model::email::Email, utils::error::log_map};
+use crate::{clients::email::EmailClient, command::{create_registration_code, create_user}, configuration::Settings, error::{api::RegistrationError, command::user::UserCreationError}, model::email::Email, utils::error::log_map};
 
 #[derive(serde::Serialize)]
 pub struct ResponseBody {
@@ -18,33 +18,6 @@ pub struct ResponseBody {
 pub struct FormData {
     email: Email,
     password: Secret<String>
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RegistrationError {
-    /// User with this email already exists in the database.
-    UserExists,
-    /// Unexpected error happened.
-    UnexpectedError,
-}
-
-impl Display for RegistrationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::UserExists => f.write_str("USER_EXISTS"),
-            // end user doesn't have to know about what happened.
-            Self::UnexpectedError => f.write_str("UNEXPECTED_ERROR")
-        }
-    }
-}
-
-impl actix_web::ResponseError for RegistrationError {
-    fn status_code(&self) -> actix_web::http::StatusCode {
-        match self {
-            Self::UserExists => StatusCode::CONFLICT,
-            Self::UnexpectedError => StatusCode::INTERNAL_SERVER_ERROR
-        }
-    }
 }
 
 /// User registration endpoint available @ POST /api/users
@@ -75,12 +48,15 @@ pub async fn post_users(
     )
         .await
         .map_err(|err| {
-            match err.as_database_error() {
-                Some(err) => match err.kind() {
-                    ErrorKind::UniqueViolation => RegistrationError::UserExists,
-                    _ => log_map(err, RegistrationError::UnexpectedError)
-                },
-                None => log_map(err, RegistrationError::UnexpectedError)
+            match err {
+                UserCreationError::Argon2(err) => log_map(err, RegistrationError::UnexpectedError),
+                UserCreationError::Sqlx(err) => match err.as_database_error() {
+                    Some(err) => match err.kind() {
+                        ErrorKind::UniqueViolation => RegistrationError::UserExists,
+                        _ => log_map(err, RegistrationError::UnexpectedError)
+                    },
+                    None => log_map(err, RegistrationError::UnexpectedError)
+                }
             }
         })?;
 

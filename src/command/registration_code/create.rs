@@ -1,17 +1,9 @@
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::hash, utils::generation::generate_confirmation_token};
+use crate::{crypto::hash, error::command::RegistractionCodeCreationError, utils::generation::generate_confirmation_token};
 
-#[derive(thiserror::Error, Debug)]
-pub enum RegistractionCodeCreationError {
-    #[error("Database error: {0}")]
-    Sqlx(#[from] sqlx::Error),
-    #[error("Cannot generate the token")]
-    TokenGenerationError
-}
-
-/// Command to generate a new registration code and save it in the database, return the id of confirmation and the code.
+/// Command to generate a new registration code and save it in the database, returning its and itself.
 #[instrument(name = "Creating a registration code", skip(db_conn))]
 pub async fn create_registration_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, user_id: Uuid) -> Result<(Uuid, String), RegistractionCodeCreationError> {
     let mut db_conn = db_conn.acquire().await?;

@@ -9,3 +9,4 @@ pub mod clients;
 pub mod command;
 pub mod query;
 pub mod consts;
+pub mod error;

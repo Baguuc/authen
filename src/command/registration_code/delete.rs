@@ -2,13 +2,7 @@ use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
 
-#[derive(thiserror::Error, Debug)]
-pub enum RegistrationCodeDeletionError {
-    #[error("Code not exists.")]
-    NotExists,
-    #[error("Database error: {0}")]
-    Sqlx(#[from] sqlx::Error)
-}
+use crate::error::command::RegistrationCodeDeletionError;
 
 /// Command to delete a registration code from the database.
 #[instrument(name = "Creating a registration code", skip(db_conn))]

@@ -1,17 +1,9 @@
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::verify, model::confirmation_code::ConfirmationCode};
+use crate::{crypto::verify, error::query::RegistrationCodeVerifyError, model::confirmation_code::ConfirmationCode};
 
-#[derive(thiserror::Error, Debug)]
-pub enum RegistrationCodeVerifyError {
-    #[error("Not exists.")]
-    NotExists,
-    #[error("Database error: {0}")]
-    Sqlx(#[from] sqlx::Error)
-}
-
-/// Query to verify a registration code with the one in the database the database
+/// Verify a registration code with the one in the database.
 #[instrument(name = "Verifing a registration code", skip(db_conn, code))]
 pub async fn verify_registration_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, id: Uuid, code: ConfirmationCode) -> Result<bool, RegistrationCodeVerifyError> {
     let mut db_conn = db_conn.acquire().await?;

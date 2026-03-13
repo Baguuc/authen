@@ -1,0 +1,17 @@
+/// Enum modelling every error that can happen during generation and saving of a registration code.
+#[derive(thiserror::Error, Debug)]
+pub enum RegistractionCodeCreationError {
+    #[error("Database error: {0}")]
+    Sqlx(#[from] sqlx::Error),
+    #[error("Cannot generate the token")]
+    TokenGenerationError
+}
+
+/// Enum modelling every error that can happen during deletion of a registration code.
+#[derive(thiserror::Error, Debug)]
+pub enum RegistrationCodeDeletionError {
+    #[error("Code not exists.")]
+    NotExists,
+    #[error("Database error: {0}")]
+    Sqlx(#[from] sqlx::Error)
+}
