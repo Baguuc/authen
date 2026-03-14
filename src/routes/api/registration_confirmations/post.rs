@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use actix_web::{HttpResponse, http::StatusCode, web::{Path, Json, Data}};
 use serde::Deserialize;
-use sqlx::PgPool;
+use sqlx::{Connection, PgPool};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -32,11 +32,16 @@ pub async fn post_confirmations_registration(
         .await
         .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), ConfirmationError::UnexpectedError))?;
 
+    tracing::debug!("Begining a transaction");
+    let mut transaction = db_conn.begin()
+        .await
+        .map_err(|err| log_map(format!("Cannot begin the transaction.\n{}", err), ConfirmationError::UnexpectedError))?;
+
     let code_id = path_data.confirmation_id;
     let code = body.code;
 
     tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
-    match verify_confirmation_code(&mut db_conn, code_id, code, ConfirmationCodeType::Registration).await {
+    match verify_confirmation_code(&mut *transaction, code_id, code, ConfirmationCodeType::Registration).await {
         Ok(false) => return Err(ConfirmationError::InvalidCode),
         Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
         Err(ConfirmationCodeVerificationError::NotExists) => return Err(ConfirmationError::ConfirmationNotExists),
@@ -44,17 +49,21 @@ pub async fn post_confirmations_registration(
     };
 
     tracing::info!("Retrieving the user id.");
-    let user_id = get_user_id(&mut db_conn, code_id, ConfirmationCodeType::Registration).await
+    let user_id = get_user_id(&mut *transaction, code_id, ConfirmationCodeType::Registration).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
     tracing::info!("Activating the user.");
-    activate_user(&mut db_conn, user_id).await
+    activate_user(&mut *transaction, user_id).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
     tracing::info!("Deleting the confirmation code.");
-    delete_confirmation_code(&mut db_conn, code_id, ConfirmationCodeType::Registration)
+    delete_confirmation_code(&mut *transaction, code_id, ConfirmationCodeType::Registration)
         .await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
+
+    transaction.commit()
+        .await
+        .map_err(|err| log_map(format!("Cannot commit the transaction: {}", err), ConfirmationError::UnexpectedError))?;
 
     Ok(HttpResponse::Ok().finish())
 }
