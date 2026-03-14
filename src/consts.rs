@@ -1,5 +1,5 @@
-pub const REGISTRATION_CODE_LENGTH: usize = 6;
-pub const REGISTRATION_CODE_CHAR_POOL: &[char] = &[
+pub const CONFIRMATION_CODE_LENGTH: usize = 6;
+pub const CONFIRMATION_CODE_CHAR_POOL: &[char] = &[
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
     'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
     'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4',

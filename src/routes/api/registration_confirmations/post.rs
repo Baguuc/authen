@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{command::{activate_user, delete_confirmation_code}, error::{api::ConfirmationError, query::RegistrationCodeVerifyError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::{get_user_id::get_user_id, verify_confirmation_code}, utils::error::log_map};
+use crate::{command::{activate_user, delete_confirmation_code}, error::{api::ConfirmationError, query::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::{get_user_id::get_user_id, verify_confirmation_code}, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's path.
 #[derive(Deserialize, Debug)]
@@ -38,8 +38,8 @@ pub async fn post_confirmations_registration(
     tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
     match verify_confirmation_code(&mut db_conn, code_id, code, ConfirmationCodeType::Registration).await {
         Ok(false) => return Err(ConfirmationError::InvalidCode),
-        Err(RegistrationCodeVerifyError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
-        Err(RegistrationCodeVerifyError::NotExists) => return Err(ConfirmationError::ConfirmationNotExists),
+        Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
+        Err(ConfirmationCodeVerificationError::NotExists) => return Err(ConfirmationError::ConfirmationNotExists),
         _ => ()
     };
 

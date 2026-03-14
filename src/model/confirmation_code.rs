@@ -1,6 +1,6 @@
 use serde::{Deserialize, de::Error};
 
-use crate::consts::{REGISTRATION_CODE_CHAR_POOL, REGISTRATION_CODE_LENGTH};
+use crate::consts::{CONFIRMATION_CODE_CHAR_POOL, CONFIRMATION_CODE_LENGTH};
 
 /// A model representing recorded confirmation code.
 /// Used for querying the database.
@@ -15,11 +15,11 @@ impl AsRef<str> for ConfirmationCode {
 
 impl ConfirmationCode {
     pub fn parse(s: String) -> Result<Self, String> {
-        if s.len() != REGISTRATION_CODE_LENGTH {
+        if s.len() != CONFIRMATION_CODE_LENGTH {
             return Err(String::from("Registration code has invalid length."));
         }
         
-        if s.chars().any(|c| !REGISTRATION_CODE_CHAR_POOL.contains(&c)) {
+        if s.chars().any(|c| !CONFIRMATION_CODE_CHAR_POOL.contains(&c)) {
             return Err(String::from("Registration code has a char from outside the char pool."));
         }
 

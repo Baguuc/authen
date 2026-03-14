@@ -1,11 +1,11 @@
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::verify, error::query::RegistrationCodeVerifyError, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}};
+use crate::{crypto::verify, error::query::ConfirmationCodeVerificationError, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}};
 
 /// Verify a registration code with the one in the database.
 #[instrument(name = "Verifing a registration code", skip(db_conn, code))]
-pub async fn verify_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, id: Uuid, code: ConfirmationCode, _type: ConfirmationCodeType) -> Result<bool, RegistrationCodeVerifyError> {
+pub async fn verify_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, id: Uuid, code: ConfirmationCode, _type: ConfirmationCodeType) -> Result<bool, ConfirmationCodeVerificationError> {
     let mut db_conn = db_conn.acquire().await?;
 
     // the rest should be filled out by postgres automatically
@@ -15,7 +15,7 @@ pub async fn verify_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(d
         .bind(_type.as_ref())
         .fetch_one(&mut *db_conn)
         .await
-        .map_err(|_| RegistrationCodeVerifyError::NotExists)?;
+        .map_err(|_| ConfirmationCodeVerificationError::NotExists)?;
     let hash = row.0;
 
     Ok(verify(&code.as_ref().to_string(), &hash))

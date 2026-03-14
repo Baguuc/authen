@@ -2,11 +2,11 @@ use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{error::command::RegistrationCodeDeletionError, model::confirmation_code_type::ConfirmationCodeType};
+use crate::{error::command::ConfirmationCodeDeletionError, model::confirmation_code_type::ConfirmationCodeType};
 
 /// Command to delete a registration code from the database.
 #[instrument(name = "Creating a registration code", skip(db_conn))]
-pub async fn delete_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, id: Uuid, _type: ConfirmationCodeType) -> Result<(), RegistrationCodeDeletionError> {
+pub async fn delete_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, id: Uuid, _type: ConfirmationCodeType) -> Result<(), ConfirmationCodeDeletionError> {
     let mut db_conn = db_conn.acquire().await?;
     
     // the rest should be filled out by postgres automatically
@@ -18,7 +18,7 @@ pub async fn delete_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(d
         .await?;
 
     if result.rows_affected() == 0 {
-        return Err(RegistrationCodeDeletionError::NotExists);
+        return Err(ConfirmationCodeDeletionError::NotExists);
     }
 
     Ok(())
