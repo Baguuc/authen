@@ -1,11 +1,13 @@
-use authen::{model::confirmation_code::ConfirmationCode, utils::generation::generate_confirmation_token};
+use authen::{model::confirmation_code::ConfirmationCode, utils::generation::generate_confirmation_code};
 
 #[derive(Debug, Clone)]
 struct ValidConfirmationCodeFixture(pub String);
 
 impl quickcheck::Arbitrary for ValidConfirmationCodeFixture {
     fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-        let code = generate_confirmation_token().unwrap();
+        let code = generate_confirmation_code()
+            .as_ref()
+            .to_string();
 
         Self(code)
     }

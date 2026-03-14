@@ -2,9 +2,7 @@
 #[derive(thiserror::Error, Debug)]
 pub enum RegistractionCodeCreationError {
     #[error("Database error: {0}")]
-    Sqlx(#[from] sqlx::Error),
-    #[error("Cannot generate the token")]
-    TokenGenerationError
+    Sqlx(#[from] sqlx::Error)
 }
 
 /// Enum modelling every error that can happen during deletion of a registration code.
