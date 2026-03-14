@@ -8,16 +8,12 @@ use crate::{crypto::hash, error::command::RegistractionCodeCreationError, utils:
 pub async fn create_registration_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, user_id: Uuid) -> Result<(Uuid, String), RegistractionCodeCreationError> {
     let mut db_conn = db_conn.acquire().await?;
 
-    tracing::info!("Generating a registration code.");
-    
     let id = Uuid::new_v4();
     let code = generate_confirmation_code()
         .as_ref()
         .to_string();
     // can unwrap because the argon errors are generally environment based rather than input based.
     let hashed = hash(&code).unwrap();
-
-    tracing::info!("Saving the registration code.");
     
     // the rest should be filled out by postgres automatically
     let sql = "INSERT INTO registration_codes (id, code, user_id) VALUES ($1, $2, $3) RETURNING id, code;";
@@ -27,8 +23,6 @@ pub async fn create_registration_code<'a, A: Acquire<'a, Database = Postgres>>(d
         .bind(user_id)
         .fetch_one(&mut *db_conn)
         .await?;
-    
-    tracing::info!("Saved the registration code.");
 
     Ok((result.0, code))
 }

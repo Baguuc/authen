@@ -28,19 +28,16 @@ pub async fn post_users(
     db_conn: Data<PgPool>,
     email_client: Data<EmailClient>
 ) -> actix_web::Result<HttpResponse, RegistrationError> {
-    // 1. validate the data +
-    // 2. begin a transaction +
-    // 3. insert the user + 
-    // 4. insert the confirmation code +
-    // 5. send the email +
-    // 6. commit (or rollback if email failed)
+    tracing::debug!("Acquiring the database connection.");
     let mut db_conn = db_conn.acquire()
         .await
         .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), RegistrationError::UnexpectedError))?;
 
+    tracing::debug!("Begining the transaction.");
     let mut transaction = db_conn.begin().await
         .map_err(|err| log_map(format!("Cannot start the transaction.\n{}", err), RegistrationError::UnexpectedError))?;
     
+    tracing::info!("Creating the user.");
     let user_id = create_user(
         &mut *transaction,
         form_body.email.as_ref(),
@@ -59,12 +56,14 @@ pub async fn post_users(
                 }
             }
         })?;
-
+    
+    tracing::info!("Creating the registration code.");
     let (confirmation_id, code) = create_registration_code(&mut *transaction, user_id)
         .await
         // unexpected because no error should happen
         .map_err(|err| log_map(err, RegistrationError::UnexpectedError))?;
 
+    tracing::info!("Sending the confirmation email.");
     let sender_email = config.email.sender.clone();
     let result = email_client.send_email(
         sender_email,
@@ -91,9 +90,10 @@ pub async fn post_users(
             }))
         },
         Err(err) => {
-            tracing::error!("Email server has wrong configuration, couldn't send a confirmation email.\n{}", err);
-            
-            Err(RegistrationError::UnexpectedError)
+            log_map(
+                format!("Email server has wrong configuration, couldn't send a confirmation email.\n{}", err),
+                Err(RegistrationError::UnexpectedError)
+            )
         }
     }
 }

@@ -21,7 +21,5 @@ pub async fn create_user<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, em
         .fetch_one(&mut *db_conn)
         .await?;
 
-    tracing::info!("Saved the user to the database.");
-
     Ok(result.0)
 }

@@ -27,11 +27,7 @@ pub async fn post_confirmations_registration(
     Json(body): Json<JsonData>,
     db_conn: Data<PgPool>,
 ) -> actix_web::Result<HttpResponse, ConfirmationError> {
-    // 1. validate the data +
-    // 2. Fetch the code hash +
-    // 3. Verify the code hash +
-    // 4. Change user's status + 
-    // 5. Delete the code
+    tracing::debug!("Acquiring the database connection.");
     let mut db_conn = db_conn.acquire()
         .await
         .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), ConfirmationError::UnexpectedError))?;
@@ -39,6 +35,7 @@ pub async fn post_confirmations_registration(
     let code_id = path_data.confirmation_id;
     let code = body.code;
 
+    tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
     match verify_registration_code(&mut db_conn, code_id, code).await {
         Ok(false) => return Err(ConfirmationError::InvalidCode),
         Err(RegistrationCodeVerifyError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
@@ -46,12 +43,15 @@ pub async fn post_confirmations_registration(
         _ => ()
     };
 
+    tracing::info!("Retrieving the user id.");
     let user_id = get_user_id_from_registration_id(&mut db_conn, code_id).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
+    tracing::info!("Activating the user.");
     activate_user(&mut db_conn, user_id).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
+    tracing::info!("Deleting the confirmation code.");
     delete_registration_code(&mut db_conn, code_id)
         .await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
