@@ -124,7 +124,7 @@ async fn post_confirmations_registration_deletes_the_code() {
         .expect("Couldn't send the request to POST /api/users");
     let status = response.status();
 
-    let code_number: i64 = sqlx::query("SELECT COUNT(*) as row_count FROM registration_codes;")
+    let code_number: i64 = sqlx::query("SELECT COUNT(*) as row_count FROM confirmation_codes;")
         .fetch_one(&app.db_pool)
         .await
         .unwrap()

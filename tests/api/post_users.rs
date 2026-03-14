@@ -74,14 +74,14 @@ async fn post_users_persists_valid_data() {
         .get("row_count");
     assert_eq!(users_row_count, 1);
 
-    let registration_codes_count: i64 = sqlx::query("SELECT COUNT(*) as row_count FROM registration_codes;")
+    let registration_codes_count: i64 = sqlx::query("SELECT COUNT(*) as row_count FROM confirmation_codes;")
         .fetch_one(&app.db_pool)
         .await
         .unwrap()
         .get("row_count");
     assert_eq!(registration_codes_count, 1);
 
-    let registration_code_id: Uuid = sqlx::query("SELECT id FROM registration_codes;")
+    let registration_code_id: Uuid = sqlx::query("SELECT id FROM confirmation_codes;")
         .fetch_one(&app.db_pool)
         .await
         .unwrap()

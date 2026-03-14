@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{command::{activate_user, delete_registration_code}, error::{api::ConfirmationError, query::RegistrationCodeVerifyError}, model::confirmation_code::ConfirmationCode, query::{get_user_id::get_user_id_from_registration_id, verify_registration_code}, utils::error::log_map};
+use crate::{command::{activate_user, delete_confirmation_code}, error::{api::ConfirmationError, query::RegistrationCodeVerifyError}, model::confirmation_code::ConfirmationCode, query::{get_user_id::get_user_id, verify_confirmation_code}, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's path.
 #[derive(Deserialize, Debug)]
@@ -36,7 +36,7 @@ pub async fn post_confirmations_registration(
     let code = body.code;
 
     tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
-    match verify_registration_code(&mut db_conn, code_id, code).await {
+    match verify_confirmation_code(&mut db_conn, code_id, code, String::from("registration")).await {
         Ok(false) => return Err(ConfirmationError::InvalidCode),
         Err(RegistrationCodeVerifyError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
         Err(RegistrationCodeVerifyError::NotExists) => return Err(ConfirmationError::ConfirmationNotExists),
@@ -44,7 +44,7 @@ pub async fn post_confirmations_registration(
     };
 
     tracing::info!("Retrieving the user id.");
-    let user_id = get_user_id_from_registration_id(&mut db_conn, code_id).await
+    let user_id = get_user_id(&mut db_conn, code_id, String::from("registration")).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
     tracing::info!("Activating the user.");
@@ -52,7 +52,7 @@ pub async fn post_confirmations_registration(
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
     tracing::info!("Deleting the confirmation code.");
-    delete_registration_code(&mut db_conn, code_id)
+    delete_confirmation_code(&mut db_conn, code_id, String::from("registration"))
         .await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 

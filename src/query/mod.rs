@@ -1,3 +1,3 @@
-pub mod registration_code;
+pub mod confirmation_code;
 
-pub use registration_code::*;
+pub use confirmation_code::*;

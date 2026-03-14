@@ -1,5 +1,5 @@
 pub mod user;
-pub mod registration_code;
+pub mod confirmation_code;
 
 pub use user::*;
-pub use registration_code::*;
+pub use confirmation_code::*;
