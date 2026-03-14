@@ -7,7 +7,7 @@ use sqlx::{Connection, PgPool, error::ErrorKind};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{clients::email::EmailClient, command::{create_confirmation_code, create_user}, configuration::Settings, error::{api::RegistrationError, command::user::UserCreationError}, model::email::Email, utils::error::log_map};
+use crate::{clients::email::EmailClient, command::{create_confirmation_code, create_user}, configuration::Settings, error::{api::RegistrationError, command::user::UserCreationError}, model::{confirmation_code_type::ConfirmationCodeType, email::Email}, utils::error::log_map};
 
 #[derive(serde::Serialize)]
 pub struct ResponseBody {
@@ -58,7 +58,7 @@ pub async fn post_users(
         })?;
     
     tracing::info!("Creating the registration code.");
-    let (confirmation_id, code) = create_confirmation_code(&mut *transaction, user_id, String::from("registration"))
+    let (confirmation_id, code) = create_confirmation_code(&mut *transaction, user_id, ConfirmationCodeType::Registration)
         .await
         // unexpected because no error should happen
         .map_err(|err| log_map(err, RegistrationError::UnexpectedError))?;

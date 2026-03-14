@@ -1,11 +1,11 @@
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::hash, error::command::RegistractionCodeCreationError, utils::generation::generate_confirmation_code};
+use crate::{crypto::hash, error::command::RegistractionCodeCreationError, model::confirmation_code_type::ConfirmationCodeType, utils::generation::generate_confirmation_code};
 
 /// Command to generate a new registration code and save it in the database, returning its and itself.
 #[instrument(name = "Creating a registration code", skip(db_conn))]
-pub async fn create_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, user_id: Uuid, _type: String) -> Result<(Uuid, String), RegistractionCodeCreationError> {
+pub async fn create_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, user_id: Uuid, _type: ConfirmationCodeType) -> Result<(Uuid, String), RegistractionCodeCreationError> {
     let mut db_conn = db_conn.acquire().await?;
 
     let id = Uuid::new_v4();
@@ -21,7 +21,7 @@ pub async fn create_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(d
         .bind(id)
         .bind(hashed)
         .bind(user_id)
-        .bind(_type)
+        .bind(_type.as_ref())
         .fetch_one(&mut *db_conn)
         .await?;
 
