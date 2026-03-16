@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use authen::configuration::Settings;
-use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::{Sentence, Word}}};
+use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
 use sqlx::Row;
 use uuid::Uuid;
 use wiremock::{Mock, MockServer, ResponseTemplate, matchers::{method, path}};
@@ -35,7 +35,7 @@ async fn delete_confirmations_registration_changes_deletes_the_user() {
     // register the user
     let response: RegistrationResponseBody = TestApp::post_users(&http_client, &app.address, Some(email), Some(password))
         .await
-        .expect("Couldn't send the request to delete /api/users")
+        .expect("Couldn't send the request to the API.")
         .json()
         .await
         .expect("Wrong response shape.");
@@ -57,14 +57,14 @@ async fn delete_confirmations_registration_changes_deletes_the_user() {
         .body_json()
         .unwrap();
     let text_body: &String = recieved_request_body.get("TextBody")
-        .expect("No TextBody in the request.");
+        .expect("Couldn't send the request to the API.");
     // for now we collect the code this way, I will change it in future when I will add the UI page
     // so that the email will be sending a link and the link will be scraped from the email.
     let confirmation_code = text_body.replace("Confirm your account using the code ", "");
 
     let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
-        .expect("Couldn't send the request to DELETE /api/users");
+        .expect("Couldn't send the request to the API.");
     let status = response.status();
 
     let user_exists: bool = sqlx::query("SELECT 1 FROM users;")
@@ -98,7 +98,7 @@ async fn delete_confirmations_registration_deletes_the_code() {
     // register the user
     let response: RegistrationResponseBody = TestApp::post_users(&http_client, &app.address, Some(email), Some(password))
         .await
-        .expect("Couldn't send the request to delete /api/users")
+        .expect("Couldn't send the request to the API.")
         .json()
         .await
         .expect("Wrong response shape.");
@@ -119,7 +119,7 @@ async fn delete_confirmations_registration_deletes_the_code() {
 
     let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
-        .expect("Couldn't send the request to delete /api/users");
+        .expect("Couldn't send the request to the API.");
     let status = response.status();
 
     let code_number: i64 = sqlx::query("SELECT COUNT(*) as row_count FROM confirmation_codes;")
@@ -139,11 +139,15 @@ async fn delete_confirmations_registration_rejects_request_with_code_missing() {
     let http_client = reqwest::Client::new();
     
     // try to delete with no code
-    let id = Uuid::new_v4().to_string();
-    let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, id, None)
-        .await
-        .expect("Couldn't send the request to the API.");
-    let status = response.status();
+    let status = {
+        // no need to provide a existing id as its existance is checked after deserialization.
+        let id = Uuid::new_v4().to_string();
+        let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, id, None)
+            .await
+            .expect("Couldn't send the request to the API.");
+        
+        response.status()
+    };
 
     // Assert
     assert_eq!(status, 400);
@@ -157,25 +161,72 @@ async fn delete_confirmations_registration_rejects_invalid_registration_code_id(
 
     // Act
     // register the user
-    let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, Word().fake(), None)
-        .await
-        .expect("Couldn't send the request to delete /api/users");
-    let status = response.status();
+    let status = {
+        let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, Word().fake(), None)
+            .await
+            .expect("Couldn't send the request to the API.");
+
+        response.status()
+    };
 
     assert_eq!(status, 404);
 }
 
 #[tokio::test]
-async fn delete_confirmations_registration_rejects_request_with_invalid_code() {
+async fn delete_confirmations_registration_rejects_registration_code_id_not_existing() {
+    let mock_server = MockServer::start().await;
+    let app = spawn_app(Some(mock_server.uri())).await;
+    let http_client = reqwest::Client::new();
+
+    // Act
+    // register the user
+    // random Uuid that doesn't exist
+    let status = {
+        let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, Uuid::new_v4().to_string(), Some(String::from("123456")))
+            .await
+            .expect("Couldn't send the request to the API.");
+        
+        response.status()
+    };
+
+    assert_eq!(status, 404);
+}
+
+#[tokio::test]
+async fn delete_confirmations_registration_rejects_request_with_code_with_invalid_chars() {
     let app = spawn_app(Some(String::new())).await;
     let http_client = reqwest::Client::new();
 
-    // try to delete with invalid code
-    let id = Uuid::new_v4().to_string();
-    let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, id, Some(String::from("123")))
-        .await
-        .expect("Couldn't send the request to the API.");
-    let status = response.status();
+    // try to post with invalid code
+    let status = {
+        // no need to provide a existing id as its existance is checked after deserialization.
+        let id = Uuid::new_v4().to_string();
+        let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, id, Some(String::from("*&#-()")))
+            .await
+            .expect("Couldn't send the request to the API.");
+        
+        response.status()
+    };
+
+    // Assert
+    assert_eq!(status, 400);
+}
+
+#[tokio::test]
+async fn delete_confirmations_registration_rejects_request_with_code_with_invalid_lenght() {
+    let app = spawn_app(Some(String::new())).await;
+    let http_client = reqwest::Client::new();
+
+    // try to post with invalid code lenght
+    let status = {
+        // no need to provide a existing id as its existance is checked after deserialization.
+        let id = Uuid::new_v4().to_string();
+        let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, id, Some(String::from("123")))
+            .await
+            .expect("Couldn't send the request to the API.");
+        
+        response.status()
+    };
 
     // Assert
     assert_eq!(status, 400);

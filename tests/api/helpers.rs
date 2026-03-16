@@ -1,4 +1,3 @@
-use actix_web::body;
 use authen::{configuration::{DatabaseSettings, Settings}, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
 use reqwest::{Client, Response};
 use secrecy::Secret;

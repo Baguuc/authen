@@ -4,7 +4,7 @@ use authen::{model::confirmation_code::ConfirmationCode, utils::generation::gene
 struct ValidConfirmationCodeFixture(pub String);
 
 impl quickcheck::Arbitrary for ValidConfirmationCodeFixture {
-    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+    fn arbitrary(_: &mut quickcheck::Gen) -> Self {
         let code = generate_confirmation_code()
             .as_ref()
             .to_string();

@@ -9,7 +9,7 @@ pub enum ConfirmationError {
     ConfirmationNotExists,
     /// Invalid code
     #[error("INVALID_CODE")]
-    InvalidCode,
+    WrongCode,
     /// Unexpected error happened.
     #[error("UNEXPECTED_ERROR")]
     UnexpectedError,
@@ -19,7 +19,7 @@ impl actix_web::ResponseError for ConfirmationError {
     fn status_code(&self) -> actix_web::http::StatusCode {
         match self {
             Self::ConfirmationNotExists => StatusCode::NOT_FOUND,
-            Self::InvalidCode => StatusCode::FORBIDDEN,
+            Self::WrongCode => StatusCode::FORBIDDEN,
             Self::UnexpectedError => StatusCode::INTERNAL_SERVER_ERROR
         }
     }

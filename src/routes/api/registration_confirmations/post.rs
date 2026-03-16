@@ -40,7 +40,7 @@ pub async fn post_confirmations_registration(
 
     tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
     match verify_confirmation_code(&mut *transaction, code_id, code, ConfirmationCodeType::Registration).await {
-        Ok(false) => return Err(ConfirmationError::InvalidCode),
+        Ok(false) => return Err(ConfirmationError::WrongCode),
         Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
         Err(ConfirmationCodeVerificationError::NotExists) => return Err(ConfirmationError::ConfirmationNotExists),
         _ => ()
