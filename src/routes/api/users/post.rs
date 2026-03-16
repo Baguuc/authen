@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use actix_web::{HttpResponse, http::StatusCode, web::{Data, Form}};
+use actix_web::{HttpResponse, http::StatusCode, web::{Data, Form, Json}};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use sqlx::{Connection, PgPool, error::ErrorKind};
@@ -15,7 +15,7 @@ pub struct ResponseBody {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct FormData {
+pub struct BodyData {
     email: Email,
     password: Secret<String>
 }
@@ -23,7 +23,7 @@ pub struct FormData {
 /// User registration endpoint available @ POST /api/users
 #[instrument(name = "Registering a user", skip(db_conn, config, email_client))]
 pub async fn post_users(
-    Form(form_body): Form<FormData>,
+    Json(form_body): Json<BodyData>,
     config: Data<Settings>,
     db_conn: Data<PgPool>,
     email_client: Data<EmailClient>

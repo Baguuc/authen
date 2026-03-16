@@ -41,8 +41,8 @@ impl TestApp {
         http_client
             // Use the returned application address
             .post(&format!("{}/api/users", address))
-            .header("content-type", "application/x-www-form-urlencoded")
-            .body(serde_urlencoded::to_string(&body_map).unwrap())
+            .header("content-type", "application/json")
+            .json(&body_map)
             .send()
             .await
     }
