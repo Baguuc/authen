@@ -1,6 +1,4 @@
-use std::fmt::Display;
-
-use actix_web::{HttpResponse, http::StatusCode, web::{Data, Form, Json}};
+use actix_web::{HttpResponse, web::{Data, Json}};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use sqlx::{Connection, PgPool, error::ErrorKind};
@@ -70,8 +68,8 @@ pub async fn post_users(
         form_body.email,
         // content customization and link will be implemented in the near future
         String::from("Confirm your account"),
-        String::from(format!("Confirm your account using the code {}", code)),
-        String::from(format!("<b>Confirm your account using the code {}<b>", code)),
+        format!("Confirm your account using the code {}", code),
+        format!("<b>Confirm your account using the code {}<b>", code)
     )
     .await;
 

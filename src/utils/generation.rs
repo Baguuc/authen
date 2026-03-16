@@ -7,11 +7,11 @@ use crate::{consts::{CONFIRMATION_CODE_CHAR_POOL, CONFIRMATION_CODE_LENGTH}, mod
 pub fn generate_confirmation_code() -> ConfirmationCode {
     let mut rng = OsRng;
     let mut buf = vec![0u8; CONFIRMATION_CODE_LENGTH];
-    rng.try_fill_bytes(&mut buf); // fill buffer with random bytes
+    let _ = rng.try_fill_bytes(&mut buf); // fill buffer with random bytes
 
     // Map each byte to a character in the pool
     let code_raw: String = buf.iter()
-        .map(|b| CONFIRMATION_CODE_CHAR_POOL[(*b as usize) % CONFIRMATION_CODE_CHAR_POOL.len()] as char)
+        .map(|b| CONFIRMATION_CODE_CHAR_POOL[(*b as usize) % CONFIRMATION_CODE_CHAR_POOL.len()])
         .collect();
     
     match ConfirmationCode::parse(code_raw) {

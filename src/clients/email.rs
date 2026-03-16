@@ -24,9 +24,9 @@ impl EmailClient {
 
         let mut headers = HeaderMap::new();
         for header in config.send_endpoint.headers {
-            let header_name = HeaderName::from_bytes(&header.name.as_bytes())
+            let header_name = HeaderName::from_str(header.name.as_str())
                 .map_err(|_| EmailClientConstructionError::InvalidHeaderValue(format!("Invalid email server's send endpoint header name:\n{}: {}", header.name, header.value)))?;
-            let header_value = HeaderValue::from_str(&header.value)
+            let header_value = HeaderValue::from_str(header.value.as_str())
                 .map_err(|_| EmailClientConstructionError::InvalidHeaderValue(format!("Invalid email server's send endpoint header value:\n{}: {}", header.name, header.value)))?;
 
             headers.insert(header_name, header_value);

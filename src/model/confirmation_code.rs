@@ -34,6 +34,6 @@ impl<'de> Deserialize<'de> for ConfirmationCode {
         D: serde::Deserializer<'de>
     {
         let raw = String::deserialize(deserializer)?;
-        Self::parse(raw).map_err(|err| D::Error::custom(err))    
+        Self::parse(raw).map_err(D::Error::custom)
     }
 }

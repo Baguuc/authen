@@ -15,6 +15,6 @@ impl AsRef<str> for ConfirmationCodeType {
 
 impl Debug for ConfirmationCodeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(format!("{}", self.as_ref()).as_str())
+        f.write_str(self.as_ref())
     }
 }

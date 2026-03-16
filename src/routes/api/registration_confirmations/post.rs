@@ -1,6 +1,4 @@
-use std::fmt::Display;
-
-use actix_web::{HttpResponse, http::StatusCode, web::{Path, Json, Data}};
+use actix_web::{HttpResponse, web::{Path, Json, Data}};
 use serde::Deserialize;
 use sqlx::{Connection, PgPool};
 use tracing::instrument;

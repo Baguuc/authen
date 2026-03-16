@@ -15,8 +15,8 @@ pub fn hash(s: &String) -> Result<String, Error> {
 /// Utility to validate a Argon2 hash.
 /// Made with the specific purpose to have standard function across the codebase, so in case
 /// of parameters change everything stays in sync.
-pub fn verify(s: &String, hash: &String) -> bool {
-    let password_hash = match PasswordHash::parse(&hash, Encoding::B64) {
+pub fn verify(s: &String, hash: &str) -> bool {
+    let password_hash = match PasswordHash::parse(hash, Encoding::B64) {
         Ok(hash) => hash,
         Err(_) => return false,
     };
