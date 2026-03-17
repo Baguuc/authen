@@ -1,4 +1,4 @@
-use authen::{configuration::{DatabaseSettings, Settings}, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
+use authen::{configuration::{DatabaseSettings, Settings}, crypto::hash, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
 use reqwest::{Client, Response};
 use secrecy::Secret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -89,6 +89,35 @@ impl TestApp {
             .send()
             .await
     }
+
+    /// Send the request to POST /api/users route for testing purposes
+    pub async fn post_session(http_client: &Client, address: &String, email: Option<String>, password: Option<String>) -> Result<Response, reqwest::Error> {
+        let mut body_map = HashMap::new();
+        if let Some(email) = email {
+            body_map.insert("email", email);
+        };
+        if let Some(password) = password {
+            body_map.insert("password", password);
+        };
+        
+        http_client
+            // Use the returned application address
+            .post(&format!("{}/api/session", address))
+            .header("content-type", "application/json")
+            .json(&body_map)
+            .send()
+            .await
+    }
+}
+
+/// Create a already activated user for testing purposes
+pub async fn create_active_user(db_conn: &PgPool, email: &String, password: &String) {
+    let _ = sqlx::query("INSERT INTO users (id, email, password_hash, active) VALUES ($1, $2, $3, true);")
+        .bind(Uuid::new_v4())
+        .bind(&email)
+        .bind(&hash(&password).unwrap())
+        .execute(db_conn)
+        .await;
 }
 
 pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
