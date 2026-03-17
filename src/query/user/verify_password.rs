@@ -16,5 +16,5 @@ pub async fn verify_user_password<'a, A: Acquire<'a, Database = Postgres>>(db_co
         .map_err(|_| UserPasswordVerificationError::NotExists)?;
     let hash = row.0;
 
-    Ok(verify(&password, &hash))
+    Ok(verify(password, &hash))
 }
