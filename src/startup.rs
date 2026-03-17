@@ -1,5 +1,6 @@
 use crate::clients::email::EmailClient;
 use crate::configuration::{DatabaseSettings, EmailServerSettings, Settings};
+use crate::routes::api::post::post_session;
 use crate::routes::api::registration_confirmations::delete::delete_confirmations_registration;
 use crate::routes::api::registration_confirmations::post::post_confirmations_registration;
 use crate::routes::api::{health_check, post_users};
@@ -80,6 +81,7 @@ impl Application {
                                 .route("/{confirmation_id}", web::delete().to(delete_confirmations_registration))
                         )
                     )
+                    .route("/session", web::post().to(post_session))
                 )
         })
         .listen(listener)?

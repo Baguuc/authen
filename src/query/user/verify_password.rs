@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::{crypto::verify, error::query::UserPasswordVerificationError};
 
 /// Verify a user password with the one in the database.
-#[instrument(name = "Verifing a registration code", skip(db_conn))]
+#[instrument(name = "Verifing users password code", skip(db_conn))]
 pub async fn verify_user_password<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, user_id: &Uuid, password: &String) -> Result<bool, UserPasswordVerificationError> {
     let mut db_conn = db_conn.acquire().await?;
 

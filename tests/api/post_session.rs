@@ -150,6 +150,36 @@ async fn post_session_returns_400_for_invalid_email() {
 }
 
 #[tokio::test]
+async fn post_session_returns_400_for_wrong_password() {
+    // Arrange
+    let mock_server = MockServer::start().await;
+    let app = spawn_app(Some(mock_server.uri())).await;
+    let http_client = reqwest::Client::new();
+
+    // no mock because it shouldn't send any email anyways
+
+    let email: String = SafeEmail().fake();
+    // any password length should be fine, testing only up to 16 characters as further is not needed.
+    let original_password: String = Password(1..16).fake();
+    let fake_password: String = Password(1..16).fake();
+
+    create_active_user(&app.db_pool, &email, &original_password).await;
+
+    // Act
+    let status = {
+        let response = TestApp::post_session(&http_client, &app.address, Some(email), Some(fake_password))
+            .await
+            .expect("Couldn't send the request to the API.");
+        
+        response.status()
+    };
+
+    // Assert
+    assert_eq!(status, 401);
+}
+
+
+#[tokio::test]
 async fn post_session_returns_400_for_missing_email() {
     let mock_server = MockServer::start().await;
     let app = spawn_app(Some(mock_server.uri())).await;
@@ -215,16 +245,6 @@ async fn post_session_returns_409_when_user_do_not_exists() {
     let mock_server = MockServer::start().await;
     let app = spawn_app(Some(mock_server.uri())).await;
     let http_client = reqwest::Client::new();
-    let config = Settings::parse().unwrap();
-
-    Mock::given(method(config.email.server.send_endpoint.method))
-        .and(path(config.email.server.send_endpoint.route))
-        .respond_with(ResponseTemplate::new(200))
-        // only the first request should send the confirmation email,
-        // the second one should reject the email before creating the user.
-        .expect(1)
-        .mount(&mock_server)
-        .await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.

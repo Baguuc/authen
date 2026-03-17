@@ -4,7 +4,7 @@ use sqlx::{Connection, PgPool};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{command::{activate_user, delete_confirmation_code}, error::{api::ConfirmationError, query::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::{get_user_id::get_user_id, verify_confirmation_code}, utils::error::log_map};
+use crate::{command::{activate_user, delete_confirmation_code}, error::{api::ConfirmationError, query::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::{get_user_id_from_registration_code, verify_confirmation_code}, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's path.
 #[derive(Deserialize, Debug)]
@@ -47,7 +47,7 @@ pub async fn post_confirmations_registration(
     };
 
     tracing::info!("Retrieving the user id.");
-    let user_id = get_user_id(&mut *transaction, code_id, ConfirmationCodeType::Registration).await
+    let user_id = get_user_id_from_registration_code(&mut *transaction, code_id, ConfirmationCodeType::Registration).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
     tracing::info!("Activating the user.");

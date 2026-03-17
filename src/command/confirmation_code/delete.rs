@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::{error::command::ConfirmationCodeDeletionError, model::confirmation_code_type::ConfirmationCodeType};
 
 /// Command to delete a registration code from the database.
-#[instrument(name = "Creating a registration code", skip(db_conn))]
+#[instrument(name = "Deleting a registration code", skip(db_conn))]
 pub async fn delete_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, id: Uuid, _type: ConfirmationCodeType) -> Result<(), ConfirmationCodeDeletionError> {
     let mut db_conn = db_conn.acquire().await?;
     
