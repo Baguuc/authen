@@ -6,3 +6,12 @@ pub enum UserPasswordVerificationError {
     #[error("Database error: {0}")]
     Sqlx(#[from] sqlx::Error)
 }
+
+/// Enum modelling every error that can happen during retrieving users id from email.
+#[derive(thiserror::Error, Debug)]
+pub enum GetUserIdError {
+    #[error("Not exists.")]
+    NotExists,
+    #[error("Database error: {0}")]
+    Sqlx(#[from] sqlx::Error)
+}
