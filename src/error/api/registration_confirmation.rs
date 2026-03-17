@@ -19,7 +19,7 @@ impl actix_web::ResponseError for ConfirmationError {
     fn status_code(&self) -> actix_web::http::StatusCode {
         match self {
             Self::ConfirmationNotExists => StatusCode::NOT_FOUND,
-            Self::WrongCode => StatusCode::FORBIDDEN,
+            Self::WrongCode => StatusCode::UNAUTHORIZED,
             Self::UnexpectedError => StatusCode::INTERNAL_SERVER_ERROR
         }
     }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use authen::configuration::Settings;
+use authen::{configuration::Settings, utils::generation::generate_confirmation_code};
 use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
 use sqlx::Row;
 use uuid::Uuid;
@@ -131,6 +131,43 @@ async fn delete_confirmations_registration_deletes_the_code() {
 
     assert_eq!(status, 200);
     assert!(!code_exists)
+}
+
+#[tokio::test]
+async fn delete_confirmations_registration_rejects_wrong_code() {
+    let mock_server = MockServer::start().await;
+    let app = spawn_app(Some(mock_server.uri())).await;
+    let http_client = reqwest::Client::new();
+    let config = Settings::parse().unwrap();
+
+    Mock::given(method(config.email.server.send_endpoint.method))
+        .and(path(config.email.server.send_endpoint.route))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&mock_server)
+        .await;
+
+    let email: String = SafeEmail().fake();
+    // any password length should be fine, testing only up to 16 characters as further is not needed.
+    let original_password: String = Password(1..16).fake();
+
+    // Act
+    // register the user
+    let response: RegistrationResponseBody = TestApp::post_users(&http_client, &app.address, Some(email), Some(original_password))
+        .await
+        .expect("Couldn't send the request to the API.")
+        .json()
+        .await
+        .expect("Wrong response shape.");
+    let confirmation_id = response.confirmation_id;
+
+    // try confirming with wrong code
+    let response = TestApp::delete_registrations_confirmation(&http_client, &app.address, confirmation_id.to_string(), Some(generate_confirmation_code().as_ref().to_string()))
+        .await
+        .expect("Couldn't send the request to the API.");
+    let status = response.status();
+
+    assert_eq!(status, 401);
 }
 
 #[tokio::test]
