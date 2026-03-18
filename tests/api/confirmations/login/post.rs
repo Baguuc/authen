@@ -1,12 +1,8 @@
-use std::{collections::HashMap, fs::File, io::{self, Write}};
-
-use authen::{configuration::Settings, utils::generation::generate_confirmation_code};
+use authen::utils::generation::generate_confirmation_code;
 use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
 use sqlx::Row;
 use uuid::Uuid;
-use wiremock::{Mock, MockServer, ResponseTemplate, matchers::{method, path}};
-
-use crate::helpers::{TestApp, create_active_user, spawn_app};
+use crate::helpers::{TestApp, create_active_user, get_login_confirmation_code_from_request, init};
 
 #[derive(serde::Deserialize)]
 struct LoginResponseBody {
@@ -21,17 +17,8 @@ struct LoginConfirmationResponseBody {
 
 #[tokio::test]
 async fn post_confirmations_login_returns_a_session_token() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
-    let config = Settings::parse().unwrap();
-
-    Mock::given(method(config.email.server.send_endpoint.method))
-        .and(path(config.email.server.send_endpoint.route))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&mock_server)
-        .await;
+    let (app, mock_server, http_client, _, mock) = init().await;
+    mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
@@ -47,21 +34,9 @@ async fn post_confirmations_login_returns_a_session_token() {
     let json_body_data: LoginResponseBody = response.json()
         .await
         .expect("Wrong login response.");
+
     let confirmation_id = json_body_data.confirmation_id;
-
-    let recieved_request_body: HashMap<String, String> = mock_server.received_requests()
-        .await
-        .expect("Mock email server haven't got the request.")
-        .get(0)
-        .unwrap()
-        .body_json()
-        .unwrap();
-    let text_body: &String = recieved_request_body.get("TextBody")
-        .expect("No TextBody in the request.");
-
-    // for now we collect the code this way, I will change it in future when I will add the UI page
-    // so that the email will be sending a link and the link will be scraped from the email.
-    let confirmation_code = text_body.replace("Confirm your account using the code ", "");
+    let confirmation_code = get_login_confirmation_code_from_request(&mock_server, 0).await;
 
     let response = TestApp::post_confirmations_login(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
@@ -75,17 +50,8 @@ async fn post_confirmations_login_returns_a_session_token() {
 
 #[tokio::test]
 async fn post_confirmations_login_deletes_the_code() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
-    let config = Settings::parse().unwrap();
-
-    Mock::given(method(config.email.server.send_endpoint.method))
-        .and(path(config.email.server.send_endpoint.route))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&mock_server)
-        .await;
+    let (app, mock_server, http_client, _, mock) = init().await;
+    mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
@@ -101,21 +67,9 @@ async fn post_confirmations_login_deletes_the_code() {
     let json_body_data: LoginResponseBody = response.json()
         .await
         .expect("Wrong login response.");
+
     let confirmation_id = json_body_data.confirmation_id;
-
-    let recieved_request_body: HashMap<String, String> = mock_server.received_requests()
-        .await
-        .expect("Mock email server haven't got the request.")
-        .get(0)
-        .unwrap()
-        .body_json()
-        .unwrap();
-    let text_body: &String = recieved_request_body.get("TextBody")
-        .expect("No TextBody in the request.");
-
-    // for now we collect the code this way, I will change it in future when I will add the UI page
-    // so that the email will be sending a link and the link will be scraped from the email.
-    let confirmation_code = text_body.replace("Confirm your account using the code ", "");
+    let confirmation_code = get_login_confirmation_code_from_request(&mock_server, 0).await;
 
     let response = TestApp::post_confirmations_login(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
@@ -133,20 +87,10 @@ async fn post_confirmations_login_deletes_the_code() {
     assert!(!code_exists);
 }
 
-
 #[tokio::test]
 async fn post_confirmations_login_rejects_wrong_code() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
-    let config = Settings::parse().unwrap();
-
-    Mock::given(method(config.email.server.send_endpoint.method))
-        .and(path(config.email.server.send_endpoint.route))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&mock_server)
-        .await;
+    let (app, mock_server, http_client, _, mock) = init().await;
+    mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
@@ -175,11 +119,9 @@ async fn post_confirmations_login_rejects_wrong_code() {
     assert_eq!(post_confirmations_status, 401);
 }
 
-
 #[tokio::test]
 async fn post_confirmations_login_rejects_request_with_code_missing() {
-    let app = spawn_app(Some(String::new())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
     
     // try to post with no code
     let status = {
@@ -198,9 +140,8 @@ async fn post_confirmations_login_rejects_request_with_code_missing() {
 
 #[tokio::test]
 async fn post_confirmations_login_rejects_invalid_login_code_id() {
-    let app = spawn_app(Some(String::new())).await;
-    let http_client = reqwest::Client::new();
-
+    let (app, _, http_client, _, _mock) = init().await;
+    
     // Act
     // register the user
     // a word is not a valid Uuid obviously
@@ -217,8 +158,7 @@ async fn post_confirmations_login_rejects_invalid_login_code_id() {
 
 #[tokio::test]
 async fn post_confirmations_login_rejects_login_code_id_not_existing() {
-    let app = spawn_app(Some(String::new())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
 
     // Act
     // register the user
@@ -237,8 +177,7 @@ async fn post_confirmations_login_rejects_login_code_id_not_existing() {
 
 #[tokio::test]
 async fn post_confirmations_login_rejects_request_with_code_with_invalid_chars() {
-    let app = spawn_app(Some(String::new())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
 
     // try to post with invalid code
     let status = {
@@ -257,8 +196,7 @@ async fn post_confirmations_login_rejects_request_with_code_with_invalid_chars()
 
 #[tokio::test]
 async fn post_confirmations_login_rejects_request_with_code_with_invalid_lenght() {
-    let app = spawn_app(Some(String::new())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
 
     // try to post with invalid code lenght
     let status = {

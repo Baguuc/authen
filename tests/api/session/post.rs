@@ -1,9 +1,7 @@
-use authen::configuration::Settings;
 use fake::{Fake, faker::internet::en::{Password, SafeEmail}};
 use sqlx::Row;
 use uuid::Uuid;
-use wiremock::{Mock, MockServer, ResponseTemplate, matchers::{method, path}};
-use crate::helpers::{TestApp, create_active_user, spawn_app};
+use crate::helpers::{TestApp, create_active_user, init};
 
 #[derive(serde::Deserialize)]
 struct ResponseBody {
@@ -12,17 +10,8 @@ struct ResponseBody {
 
 #[tokio::test]
 async fn post_session_returns_200_for_valid_data() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
-    let config = Settings::parse().unwrap();
-
-    Mock::given(method(config.email.server.send_endpoint.method))
-        .and(path(config.email.server.send_endpoint.route))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&mock_server)
-        .await;
+    let (app, mock_server, http_client, _, mock) = init().await;
+    mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
@@ -48,17 +37,8 @@ async fn post_session_returns_200_for_valid_data() {
 #[tokio::test]
 async fn post_session_persists_valid_data() {
     // Arrange
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
-    let config = Settings::parse().unwrap();
-
-    Mock::given(method(config.email.server.send_endpoint.method))
-        .and(path(config.email.server.send_endpoint.route))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&mock_server)
-        .await;
+    let (app, mock_server, http_client, _, mock) = init().await;
+    mock.mount(&mock_server).await;
 
     let email = SafeEmail().fake();
     let password: String = Password(8..16).fake();
@@ -94,17 +74,8 @@ async fn post_session_persists_valid_data() {
 #[tokio::test]
 async fn post_session_sends_the_link() {
     // Arrange
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
-    let config = Settings::parse().unwrap();
-
-    Mock::given(method(config.email.server.send_endpoint.method))
-        .and(path(config.email.server.send_endpoint.route))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&mock_server)
-        .await;
+    let (app, mock_server, http_client, _, mock) = init().await;
+    mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
@@ -126,9 +97,7 @@ async fn post_session_sends_the_link() {
 #[tokio::test]
 async fn post_session_returns_400_for_invalid_email() {
     // Arrange
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
 
     // no mock because it shouldn't send any email anyways
 
@@ -152,9 +121,7 @@ async fn post_session_returns_400_for_invalid_email() {
 #[tokio::test]
 async fn post_session_returns_400_for_wrong_password() {
     // Arrange
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
 
     // no mock because it shouldn't send any email anyways
 
@@ -178,12 +145,9 @@ async fn post_session_returns_400_for_wrong_password() {
     assert_eq!(status, 401);
 }
 
-
 #[tokio::test]
 async fn post_session_returns_400_for_missing_email() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
 
     // any password length should be fine, testing only up to 16 characters as further is not needed.
     let password: String = Password(1..16).fake();
@@ -203,9 +167,7 @@ async fn post_session_returns_400_for_missing_email() {
 
 #[tokio::test]
 async fn post_session_returns_400_for_missing_password() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
+   let (app, _, http_client, _, _mock) = init().await;
 
     let email: String = SafeEmail().fake();
 
@@ -223,9 +185,7 @@ async fn post_session_returns_400_for_missing_password() {
 
 #[tokio::test]
 async fn post_session_returns_400_for_both_fields_missing() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
 
     // Act
     let status = {
@@ -242,9 +202,7 @@ async fn post_session_returns_400_for_both_fields_missing() {
 
 #[tokio::test]
 async fn post_session_returns_409_when_user_do_not_exists() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
@@ -266,9 +224,7 @@ async fn post_session_returns_409_when_user_do_not_exists() {
 #[tokio::test]
 async fn post_session_returns_500_on_database_fail() {
     // Arrange
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
+    let (app, _, http_client, _, _mock) = init().await;
 
     // Sabotage the database
     let _ = sqlx::query("ALTER TABLE users DROP COLUMN email;",)

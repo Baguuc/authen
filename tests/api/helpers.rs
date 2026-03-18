@@ -2,6 +2,7 @@ use authen::{configuration::{DatabaseSettings, Settings}, crypto::hash, startup:
 use reqwest::{Client, Response};
 use secrecy::Secret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
+use wiremock::{Mock, MockServer, Request, ResponseTemplate, matchers::{method, path}};
 use std::{collections::HashMap, sync::LazyLock};
 use uuid::Uuid;
 
@@ -186,6 +187,55 @@ pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
     };
 
     test_app
+}
+
+pub async fn init() -> (TestApp, MockServer, reqwest::Client, Settings, Mock) {
+    let mock_server = MockServer::start().await;
+    let app = spawn_app(Some(mock_server.uri())).await;
+    let http_client = reqwest::Client::new();
+    let config = Settings::parse().unwrap();
+    
+    let mock = get_mock_email_api(&config, 1).await;
+
+    (app, mock_server, http_client, config, mock)
+}
+
+async fn get_mock_email_api(config: &Settings, expected_email_count: u64) -> Mock {
+    Mock::given(method(config.email.server.send_endpoint.method.clone()))
+        .and(path(config.email.server.send_endpoint.route.clone()))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(expected_email_count)
+}
+
+pub async fn get_request_from_mock_server(mock_server: &MockServer, request_index: usize) -> Request {
+    mock_server.received_requests()
+        .await
+        .expect("Mock email server haven't got the request.")
+        .get(request_index)
+        .unwrap()
+        .clone()
+}
+
+pub async fn get_registration_confirmation_code_from_request(mock_server: &MockServer, request_index: usize) -> String {
+    let recieved_request = get_request_from_mock_server(mock_server, request_index).await;
+    let recieved_request_body: HashMap<String, String> = recieved_request.body_json()
+        .unwrap();
+    let text_body: &String = recieved_request_body.get("TextBody")
+        .expect("No TextBody in the request.");
+    let confirmation_code = text_body.replace("Confirm your account using the code ", "");
+
+    confirmation_code
+}
+
+pub async fn get_login_confirmation_code_from_request(mock_server: &MockServer, request_index: usize) -> String {
+    let recieved_request = get_request_from_mock_server(mock_server, request_index).await;
+    let recieved_request_body: HashMap<String, String> = recieved_request.body_json()
+        .unwrap();
+    let text_body: &String = recieved_request_body.get("TextBody")
+        .expect("No TextBody in the request.");
+    let confirmation_code = text_body.replace("Confirm your account using the code ", "");
+
+    confirmation_code
 }
 
 async fn configure_database(config: &DatabaseSettings) -> PgPool {
