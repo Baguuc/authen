@@ -47,7 +47,7 @@ impl TestApp {
     }
 
     /// Send the request to POST /api/confirmations/registration/{} route for testing purposes
-    pub async fn post_registrations_confirmation(
+    pub async fn post_confirmations_registration(
         http_client: &Client,
         address: &String,
         confirmation_id: String,
@@ -69,7 +69,7 @@ impl TestApp {
     }
 
     /// Send the request to DELETE /api/confirmations/registration/{} route for testing purposes
-    pub async fn delete_registrations_confirmation(
+    pub async fn delete_confirmations_registration(
         http_client: &Client,
         address: &String,
         confirmation_id: String,
@@ -90,7 +90,7 @@ impl TestApp {
             .await
     }
 
-    /// Send the request to POST /api/users route for testing purposes
+    /// Send the request to POST /api/session route for testing purposes
     pub async fn post_session(http_client: &Client, address: &String, email: Option<String>, password: Option<String>) -> Result<Response, reqwest::Error> {
         let mut body_map = HashMap::new();
         if let Some(email) = email {
@@ -103,6 +103,28 @@ impl TestApp {
         http_client
             // Use the returned application address
             .post(&format!("{}/api/session", address))
+            .header("content-type", "application/json")
+            .json(&body_map)
+            .send()
+            .await
+    }
+
+    /// Send the request to POST /api/confirmations/login/{} route for testing purposes
+    pub async fn post_confirmations_login(
+        http_client: &Client,
+        address: &String,
+        confirmation_id: String,
+        confirmation_code: Option<String>
+    ) -> Result<Response, reqwest::Error> {
+        let mut body_map = HashMap::new();
+
+        if let Some(confirmation_code) = confirmation_code {
+            body_map.insert("code", confirmation_code);
+        };
+        
+        http_client
+            // Use the returned application address
+            .post(&format!("{}/api/confirmations/login/{}", address, confirmation_id.to_string()))
             .header("content-type", "application/json")
             .json(&body_map)
             .send()

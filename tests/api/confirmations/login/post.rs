@@ -6,80 +6,23 @@ use sqlx::Row;
 use uuid::Uuid;
 use wiremock::{Mock, MockServer, ResponseTemplate, matchers::{method, path}};
 
-use crate::helpers::{TestApp, spawn_app};
+use crate::helpers::{TestApp, create_active_user, spawn_app};
 
 #[derive(serde::Deserialize)]
-struct RegistrationResponseBody {
+struct LoginResponseBody {
     confirmation_id: Uuid
 }
 
-#[tokio::test]
-async fn delete_confirmations_registration_changes_deletes_the_user() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
-    let config = Settings::parse().unwrap();
-
-    Mock::given(method(config.email.server.send_endpoint.method))
-        .and(path(config.email.server.send_endpoint.route))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .mount(&mock_server)
-        .await;
-
-    let email: String = SafeEmail().fake();
-    // any password length should be fine, testing only up to 16 characters as further is not needed.
-    let password: String = Password(1..16).fake();
-
-    // Act
-    // register the user
-    let response: RegistrationResponseBody = TestApp::post_users(&http_client, &app.address, Some(email), Some(password))
-        .await
-        .expect("Couldn't send the request to the API.")
-        .json()
-        .await
-        .expect("Wrong response shape.");
-    let confirmation_id = response.confirmation_id;
-
-    let user_exists: bool = sqlx::query("SELECT active FROM users;")
-        .fetch_one(&app.db_pool)
-        .await
-        .is_ok();
-
-    // check if user is initially inactive
-    assert!(user_exists);
-
-    let recieved_request_body: HashMap<String, String> = mock_server.received_requests()
-        .await
-        .expect("Mock email server haven't got the request.")
-        .get(0)
-        .unwrap()
-        .body_json()
-        .unwrap();
-    let text_body: &String = recieved_request_body.get("TextBody")
-        .expect("Couldn't send the request to the API.");
-    // for now we collect the code this way, I will change it in future when I will add the UI page
-    // so that the email will be sending a link and the link will be scraped from the email.
-    let confirmation_code = text_body.replace("Confirm your account using the code ", "");
-
-    let response = TestApp::delete_confirmations_registration(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
-        .await
-        .expect("Couldn't send the request to the API.");
-    let status = response.status();
-
-    let user_exists: bool = sqlx::query("SELECT 1 FROM users;")
-        .fetch_one(&app.db_pool)
-        .await
-        .is_ok();
-
-    assert_eq!(status, 200);
-    assert!(!user_exists);
+#[derive(serde::Deserialize)]
+struct LoginConfirmationResponseBody {
+    #[allow(unused)]
+    token: String
 }
 
 #[tokio::test]
-async fn delete_confirmations_registration_deletes_the_code() {
+async fn post_confirmations_login_returns_a_session_token() {
     let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
+    let app = spawn_app(Some(String::new())).await;
     let http_client = reqwest::Client::new();
     let config = Settings::parse().unwrap();
 
@@ -94,15 +37,17 @@ async fn delete_confirmations_registration_deletes_the_code() {
     // any password length should be fine, testing only up to 16 characters as further is not needed.
     let password: String = Password(1..16).fake();
 
+    create_active_user(&app.db_pool, &email, &password).await;
+
     // Act
     // register the user
-    let response: RegistrationResponseBody = TestApp::post_users(&http_client, &app.address, Some(email), Some(password))
+    let response = TestApp::post_session(&http_client, &app.address, Some(email), Some(password))
         .await
-        .expect("Couldn't send the request to the API.")
-        .json()
+        .expect("Couldn't send the request to the API.");
+    let json_body_data: LoginResponseBody = response.json()
         .await
-        .expect("Wrong response shape.");
-    let confirmation_id = response.confirmation_id;
+        .expect("Wrong login response.");
+    let confirmation_id = json_body_data.confirmation_id;
 
     let recieved_request_body: HashMap<String, String> = mock_server.received_requests()
         .await
@@ -113,30 +58,25 @@ async fn delete_confirmations_registration_deletes_the_code() {
         .unwrap();
     let text_body: &String = recieved_request_body.get("TextBody")
         .expect("No TextBody in the request.");
+
     // for now we collect the code this way, I will change it in future when I will add the UI page
     // so that the email will be sending a link and the link will be scraped from the email.
     let confirmation_code = text_body.replace("Confirm your account using the code ", "");
 
-    let response = TestApp::delete_confirmations_registration(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
+    let response = TestApp::post_confirmations_login(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
         .expect("Couldn't send the request to the API.");
-    let status = response.status();
+    let post_confirmations_status = response.status();
+    let deserialization_result: Result<LoginConfirmationResponseBody, reqwest::Error> = response.json().await;
 
-    let code_number: i64 = sqlx::query("SELECT COUNT(*) as row_count FROM confirmation_codes;")
-        .fetch_one(&app.db_pool)
-        .await
-        .unwrap()
-        .get(0);
-    let code_exists = code_number > 0;
-
-    assert_eq!(status, 200);
-    assert!(!code_exists)
+    assert_eq!(post_confirmations_status, 200);
+    assert!(deserialization_result.is_ok())
 }
 
 #[tokio::test]
-async fn delete_confirmations_registration_rejects_wrong_code() {
+async fn post_confirmations_login_deletes_the_code() {
     let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
+    let app = spawn_app(Some(String::new())).await;
     let http_client = reqwest::Client::new();
     let config = Settings::parse().unwrap();
 
@@ -149,40 +89,106 @@ async fn delete_confirmations_registration_rejects_wrong_code() {
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
-    let original_password: String = Password(1..16).fake();
+    let password: String = Password(1..16).fake();
+
+    create_active_user(&app.db_pool, &email, &password).await;
 
     // Act
     // register the user
-    let response: RegistrationResponseBody = TestApp::post_users(&http_client, &app.address, Some(email), Some(original_password))
-        .await
-        .expect("Couldn't send the request to the API.")
-        .json()
-        .await
-        .expect("Wrong response shape.");
-    let confirmation_id = response.confirmation_id;
-
-    // try confirming with wrong code
-    let response = TestApp::delete_confirmations_registration(&http_client, &app.address, confirmation_id.to_string(), Some(generate_confirmation_code().as_ref().to_string()))
+    let response = TestApp::post_session(&http_client, &app.address, Some(email), Some(password))
         .await
         .expect("Couldn't send the request to the API.");
-    let status = response.status();
+    let json_body_data: LoginResponseBody = response.json()
+        .await
+        .expect("Wrong login response.");
+    let confirmation_id = json_body_data.confirmation_id;
 
-    assert_eq!(status, 401);
+    let recieved_request_body: HashMap<String, String> = mock_server.received_requests()
+        .await
+        .expect("Mock email server haven't got the request.")
+        .get(0)
+        .unwrap()
+        .body_json()
+        .unwrap();
+    let text_body: &String = recieved_request_body.get("TextBody")
+        .expect("No TextBody in the request.");
+
+    // for now we collect the code this way, I will change it in future when I will add the UI page
+    // so that the email will be sending a link and the link will be scraped from the email.
+    let confirmation_code = text_body.replace("Confirm your account using the code ", "");
+
+    let response = TestApp::post_confirmations_login(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
+        .await
+        .expect("Couldn't send the request to the API.");
+    let post_confirmations_status = response.status();
+
+    let code_number: i64 = sqlx::query("SELECT COUNT(*) as row_count FROM confirmation_codes;")
+        .fetch_one(&app.db_pool)
+        .await
+        .unwrap()
+        .get(0);
+    let code_exists = code_number > 0;
+
+    assert_eq!(post_confirmations_status, 200);
+    assert!(!code_exists);
 }
 
+
 #[tokio::test]
-async fn delete_confirmations_registration_rejects_request_with_code_missing() {
+async fn post_confirmations_login_rejects_wrong_code() {
+    let mock_server = MockServer::start().await;
+    let app = spawn_app(Some(String::new())).await;
+    let http_client = reqwest::Client::new();
+    let config = Settings::parse().unwrap();
+
+    Mock::given(method(config.email.server.send_endpoint.method))
+        .and(path(config.email.server.send_endpoint.route))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&mock_server)
+        .await;
+
+    let email: String = SafeEmail().fake();
+    // any password length should be fine, testing only up to 16 characters as further is not needed.
+    let password: String = Password(1..16).fake();
+
+    create_active_user(&app.db_pool, &email, &password).await;
+
+    // Act
+    // register the user
+    let response = TestApp::post_session(&http_client, &app.address, Some(email), Some(password))
+        .await
+        .expect("Couldn't send the request to the API.");
+    let post_session_status = response.status();
+    let json_body_data: LoginResponseBody = response.json()
+        .await
+        .expect("Wrong login response.");
+    let confirmation_id = json_body_data.confirmation_id;
+
+    // send random code
+    let response = TestApp::post_confirmations_login(&http_client, &app.address, confirmation_id.to_string(), Some(generate_confirmation_code().as_ref().to_string()))
+        .await
+        .expect("Couldn't send the request to the API.");
+    let post_confirmations_status = response.status();
+
+    assert_eq!(post_session_status, 200);
+    assert_eq!(post_confirmations_status, 401);
+}
+
+
+#[tokio::test]
+async fn post_confirmations_login_rejects_request_with_code_missing() {
     let app = spawn_app(Some(String::new())).await;
     let http_client = reqwest::Client::new();
     
-    // try to delete with no code
+    // try to post with no code
     let status = {
         // no need to provide a existing id as its existance is checked after deserialization.
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::delete_confirmations_registration(&http_client, &app.address, id, None)
+        let response = TestApp::post_confirmations_login(&http_client, &app.address, id, None)
             .await
             .expect("Couldn't send the request to the API.");
-        
+
         response.status()
     };
 
@@ -191,35 +197,16 @@ async fn delete_confirmations_registration_rejects_request_with_code_missing() {
 }
 
 #[tokio::test]
-async fn delete_confirmations_registration_rejects_invalid_registration_code_id() {
+async fn post_confirmations_login_rejects_invalid_login_code_id() {
     let mock_server = MockServer::start().await;
     let app = spawn_app(Some(mock_server.uri())).await;
     let http_client = reqwest::Client::new();
 
     // Act
     // register the user
+    // a word is not a valid Uuid obviously
     let status = {
-        let response = TestApp::delete_confirmations_registration(&http_client, &app.address, Word().fake(), None)
-            .await
-            .expect("Couldn't send the request to the API.");
-
-        response.status()
-    };
-
-    assert_eq!(status, 404);
-}
-
-#[tokio::test]
-async fn delete_confirmations_registration_rejects_registration_code_id_not_existing() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
-
-    // Act
-    // register the user
-    // random Uuid that doesn't exist
-    let status = {
-        let response = TestApp::delete_confirmations_registration(&http_client, &app.address, Uuid::new_v4().to_string(), Some(String::from("123456")))
+        let response = TestApp::post_confirmations_login(&http_client, &app.address, Word().fake(), None)
             .await
             .expect("Couldn't send the request to the API.");
         
@@ -230,7 +217,28 @@ async fn delete_confirmations_registration_rejects_registration_code_id_not_exis
 }
 
 #[tokio::test]
-async fn delete_confirmations_registration_rejects_request_with_code_with_invalid_chars() {
+async fn post_confirmations_login_rejects_login_code_id_not_existing() {
+    let mock_server = MockServer::start().await;
+    let app = spawn_app(Some(mock_server.uri())).await;
+    let http_client = reqwest::Client::new();
+
+    // Act
+    // register the user
+    let status = {
+        // random Uuid that doesn't exist
+        let id = Uuid::new_v4().to_string();
+        let response = TestApp::post_confirmations_login(&http_client, &app.address, id, Some(String::from("123456")))
+            .await
+            .expect("Couldn't send the request to the API.");
+        
+        response.status()
+    };
+
+    assert_eq!(status, 404);
+}
+
+#[tokio::test]
+async fn post_confirmations_login_rejects_request_with_code_with_invalid_chars() {
     let app = spawn_app(Some(String::new())).await;
     let http_client = reqwest::Client::new();
 
@@ -238,7 +246,7 @@ async fn delete_confirmations_registration_rejects_request_with_code_with_invali
     let status = {
         // no need to provide a existing id as its existance is checked after deserialization.
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::delete_confirmations_registration(&http_client, &app.address, id, Some(String::from("*&#-()")))
+        let response = TestApp::post_confirmations_login(&http_client, &app.address, id, Some(String::from("*&#-()")))
             .await
             .expect("Couldn't send the request to the API.");
         
@@ -250,7 +258,7 @@ async fn delete_confirmations_registration_rejects_request_with_code_with_invali
 }
 
 #[tokio::test]
-async fn delete_confirmations_registration_rejects_request_with_code_with_invalid_lenght() {
+async fn post_confirmations_login_rejects_request_with_code_with_invalid_lenght() {
     let app = spawn_app(Some(String::new())).await;
     let http_client = reqwest::Client::new();
 
@@ -258,7 +266,7 @@ async fn delete_confirmations_registration_rejects_request_with_code_with_invali
     let status = {
         // no need to provide a existing id as its existance is checked after deserialization.
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::delete_confirmations_registration(&http_client, &app.address, id, Some(String::from("123")))
+        let response = TestApp::post_confirmations_login(&http_client, &app.address, id, Some(String::from("123")))
             .await
             .expect("Couldn't send the request to the API.");
         

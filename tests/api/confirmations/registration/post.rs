@@ -63,7 +63,7 @@ async fn post_confirmations_registration_changes_active_state_of_user() {
     // so that the email will be sending a link and the link will be scraped from the email.
     let confirmation_code = text_body.replace("Confirm your account using the code ", "");
 
-    let response = TestApp::post_registrations_confirmation(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
+    let response = TestApp::post_confirmations_registration(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
         .expect("Couldn't send the request to the API.");
     let status = response.status();
@@ -119,7 +119,7 @@ async fn post_confirmations_registration_deletes_the_code() {
     // so that the email will be sending a link and the link will be scraped from the email.
     let confirmation_code = text_body.replace("Confirm your account using the code ", "");
 
-    let response = TestApp::post_registrations_confirmation(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
+    let response = TestApp::post_confirmations_registration(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
         .expect("Couldn't send the request to the API.");
     let status = response.status();
@@ -164,7 +164,7 @@ async fn post_confirmations_registration_rejects_wrong_code() {
     let confirmation_id = response.confirmation_id;
 
     // try confirming with wrong code
-    let response = TestApp::post_registrations_confirmation(&http_client, &app.address, confirmation_id.to_string(), Some(generate_confirmation_code().as_ref().to_string()))
+    let response = TestApp::post_confirmations_registration(&http_client, &app.address, confirmation_id.to_string(), Some(generate_confirmation_code().as_ref().to_string()))
         .await
         .expect("Couldn't send the request to the API.");
     let status = response.status();
@@ -182,7 +182,7 @@ async fn post_confirmations_registration_rejects_request_with_code_missing() {
     let status = {
         // no need to provide a existing id as its existance is checked after deserialization.
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::post_registrations_confirmation(&http_client, &app.address, id, None)
+        let response = TestApp::post_confirmations_registration(&http_client, &app.address, id, None)
             .await
             .expect("Couldn't send the request to the API.");
 
@@ -203,7 +203,7 @@ async fn post_confirmations_registration_rejects_invalid_registration_code_id() 
     // register the user
     // a word is not a valid Uuid obviously
     let status = {
-        let response = TestApp::post_registrations_confirmation(&http_client, &app.address, Word().fake(), None)
+        let response = TestApp::post_confirmations_registration(&http_client, &app.address, Word().fake(), None)
             .await
             .expect("Couldn't send the request to the API.");
         
@@ -224,7 +224,7 @@ async fn post_confirmations_registration_rejects_registration_code_id_not_existi
     let status = {
         // random Uuid that doesn't exist
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::post_registrations_confirmation(&http_client, &app.address, id, Some(String::from("123456")))
+        let response = TestApp::post_confirmations_registration(&http_client, &app.address, id, Some(String::from("123456")))
             .await
             .expect("Couldn't send the request to the API.");
         
@@ -243,7 +243,7 @@ async fn post_confirmations_registration_rejects_request_with_code_with_invalid_
     let status = {
         // no need to provide a existing id as its existance is checked after deserialization.
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::post_registrations_confirmation(&http_client, &app.address, id, Some(String::from("*&#-()")))
+        let response = TestApp::post_confirmations_registration(&http_client, &app.address, id, Some(String::from("*&#-()")))
             .await
             .expect("Couldn't send the request to the API.");
         
@@ -263,7 +263,7 @@ async fn post_confirmations_registration_rejects_request_with_code_with_invalid_
     let status = {
         // no need to provide a existing id as its existance is checked after deserialization.
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::post_registrations_confirmation(&http_client, &app.address, id, Some(String::from("123")))
+        let response = TestApp::post_confirmations_registration(&http_client, &app.address, id, Some(String::from("123")))
             .await
             .expect("Couldn't send the request to the API.");
         
