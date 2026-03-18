@@ -8,7 +8,8 @@ use crate::model::email::Email;
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
-    pub email: EmailSettings
+    pub email: EmailSettings,
+    pub jwt: JwtSettings
 }
 
 impl Settings {
@@ -104,4 +105,9 @@ pub struct EmailSendEnpointJsonFieldsSettings {
     pub subject: String,
     pub text_body: String,
     pub html_body: String
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct JwtSettings {
+    pub hashing_key: String
 }

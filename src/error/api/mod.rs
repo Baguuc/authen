@@ -1,7 +1,7 @@
-pub mod registration_confirmation;
+pub mod confirmation_code;
 pub mod user;
 pub mod session;
 
-pub use registration_confirmation::*;
+pub use confirmation_code::*;
 pub use user::*;
 pub use session::*;

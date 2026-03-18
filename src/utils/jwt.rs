@@ -1,7 +1,9 @@
+use uuid::Uuid;
+
 use crate::model::user_token_claims::UserTokenClaims;
 
 /// Generate a jwt token based on the user_id and key
-pub fn generate(user_id: i32, key: &String) -> Result<String, jsonwebtoken::errors::Error> {
+pub fn generate_user_token(user_id: Uuid, key: &String) -> Result<String, jsonwebtoken::errors::Error> {
     use jsonwebtoken::{EncodingKey, Header, encode};
 
     let claims = UserTokenClaims {
@@ -19,7 +21,7 @@ pub fn generate(user_id: i32, key: &String) -> Result<String, jsonwebtoken::erro
 }
 
 /// Deserialize claims from a JWT token.
-pub fn get_claims(
+pub fn deserialize_claims_from_user_token(
     token: &str,
     key: &String,
 ) -> Result<UserTokenClaims, jsonwebtoken::errors::Error> {

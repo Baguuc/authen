@@ -1,6 +1,7 @@
 use crate::clients::email::EmailClient;
 use crate::configuration::{DatabaseSettings, EmailServerSettings, Settings};
-use crate::routes::api::post::post_session;
+use crate::routes::api::login_confirmations::post::post_confirmations_login;
+use crate::routes::api::session::post::post_session;
 use crate::routes::api::registration_confirmations::delete::delete_confirmations_registration;
 use crate::routes::api::registration_confirmations::post::post_confirmations_registration;
 use crate::routes::api::{health_check, post_users};
@@ -74,11 +75,13 @@ impl Application {
                 .service(web::scope("/api")
                     .route("/health", web::get().to(health_check))
                     .route("/users", web::post().to(post_users))
-                    .service(
-                        web::scope("/confirmations")
-                            .service(web::scope("/registration")
-                                .route("/{confirmation_id}", web::post().to(post_confirmations_registration))
-                                .route("/{confirmation_id}", web::delete().to(delete_confirmations_registration))
+                    .service(web::scope("/confirmations")
+                        .service(web::scope("/registration")
+                            .route("/{confirmation_id}", web::post().to(post_confirmations_registration))
+                            .route("/{confirmation_id}", web::delete().to(delete_confirmations_registration))
+                        )
+                        .service(web::scope("/login")
+                            .route("/{confirmation_id}", web::post().to(post_confirmations_login))
                         )
                     )
                     .route("/session", web::post().to(post_session))

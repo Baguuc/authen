@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::File, io::{self, Write}};
 
 use authen::{configuration::Settings, utils::generation::generate_confirmation_code};
 use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
@@ -22,7 +22,7 @@ struct LoginConfirmationResponseBody {
 #[tokio::test]
 async fn post_confirmations_login_returns_a_session_token() {
     let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(String::new())).await;
+    let app = spawn_app(Some(mock_server.uri())).await;
     let http_client = reqwest::Client::new();
     let config = Settings::parse().unwrap();
 
@@ -76,7 +76,7 @@ async fn post_confirmations_login_returns_a_session_token() {
 #[tokio::test]
 async fn post_confirmations_login_deletes_the_code() {
     let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(String::new())).await;
+    let app = spawn_app(Some(mock_server.uri())).await;
     let http_client = reqwest::Client::new();
     let config = Settings::parse().unwrap();
 
@@ -137,7 +137,7 @@ async fn post_confirmations_login_deletes_the_code() {
 #[tokio::test]
 async fn post_confirmations_login_rejects_wrong_code() {
     let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(String::new())).await;
+    let app = spawn_app(Some(mock_server.uri())).await;
     let http_client = reqwest::Client::new();
     let config = Settings::parse().unwrap();
 
@@ -198,8 +198,7 @@ async fn post_confirmations_login_rejects_request_with_code_missing() {
 
 #[tokio::test]
 async fn post_confirmations_login_rejects_invalid_login_code_id() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
+    let app = spawn_app(Some(String::new())).await;
     let http_client = reqwest::Client::new();
 
     // Act
@@ -218,8 +217,7 @@ async fn post_confirmations_login_rejects_invalid_login_code_id() {
 
 #[tokio::test]
 async fn post_confirmations_login_rejects_login_code_id_not_existing() {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
+    let app = spawn_app(Some(String::new())).await;
     let http_client = reqwest::Client::new();
 
     // Act
