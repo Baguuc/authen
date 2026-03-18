@@ -2,7 +2,7 @@ use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{error::command::ConfirmationCodeDeletionError, model::confirmation_code_type::ConfirmationCodeType};
+use crate::{error::command::confirmation_code::ConfirmationCodeDeletionError, model::confirmation_code_type::ConfirmationCodeType};
 
 /// Command to delete a registration code from the database.
 #[instrument(name = "Deleting a registration code", skip(db_conn))]

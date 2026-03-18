@@ -1,7 +1,7 @@
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::verify, error::query::UserPasswordVerificationError};
+use crate::{crypto::verify, error::query::user::UserPasswordVerificationError};
 
 /// Verify a user password with the one in the database.
 #[instrument(name = "Verifing users password code", skip(db_conn))]

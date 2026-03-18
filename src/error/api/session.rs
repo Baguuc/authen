@@ -3,7 +3,7 @@ use actix_web::http::StatusCode;
 
 /// Enum modelling errors that can occur during registration confirmation.
 #[derive(Debug, thiserror::Error)]
-pub enum UserLoginError {
+pub enum SessionCreationError {
     /// Confirmation with provided ID do not exists.
     #[error("USER_NOT_EXISTS")]
     UserNotExists,
@@ -15,7 +15,7 @@ pub enum UserLoginError {
     UnexpectedError,
 }
 
-impl actix_web::ResponseError for UserLoginError {
+impl actix_web::ResponseError for SessionCreationError {
     fn status_code(&self) -> actix_web::http::StatusCode {
         match self {
             Self::UserNotExists => StatusCode::UNAUTHORIZED,

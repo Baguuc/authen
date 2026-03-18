@@ -1,7 +1,7 @@
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::hash, error::command::ConfirmationCodeCreationError, model::confirmation_code_type::ConfirmationCodeType, utils::generation::generate_confirmation_code};
+use crate::{crypto::hash, error::command::confirmation_code::ConfirmationCodeCreationError, model::confirmation_code_type::ConfirmationCodeType, utils::generation::generate_confirmation_code};
 
 /// Command to generate a new registration code and save it in the database, returning its and itself.
 #[instrument(name = "Creating a registration code", skip(db_conn))]

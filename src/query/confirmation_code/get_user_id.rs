@@ -2,7 +2,7 @@ use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{error::query::GetUserIdFromConfirmationCodeRecordError, model::confirmation_code_type::ConfirmationCodeType};
+use crate::{error::query::confirmation_code::GetUserIdFromConfirmationCodeRecordError, model::confirmation_code_type::ConfirmationCodeType};
 
 /// Get user id from registration confirmation record in the database.
 #[instrument(name = "Retrieving user id from confirmation code", skip(db_conn))]

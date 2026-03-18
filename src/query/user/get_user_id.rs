@@ -1,7 +1,7 @@
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{error::query::GetUserIdError, model::email::Email};
+use crate::{error::query::user::GetUserIdError, model::email::Email};
 
 /// Retrieve the users id from email.
 #[instrument(name = "Retrieving user id from email", skip(db_conn))]

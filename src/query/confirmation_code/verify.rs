@@ -1,7 +1,7 @@
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::verify, error::query::ConfirmationCodeVerificationError, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}};
+use crate::{crypto::verify, error::query::confirmation_code::ConfirmationCodeVerificationError, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}};
 
 /// Verify a registration code with the one in the database.
 #[instrument(name = "Verifing a registration code", skip(db_conn, code))]

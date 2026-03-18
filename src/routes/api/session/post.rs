@@ -4,7 +4,7 @@ use sqlx::{Connection, PgPool};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{clients::email::EmailClient, command::create_confirmation_code, configuration::Settings, error::{api::UserLoginError, query::{GetUserIdError, UserPasswordVerificationError}}, model::{confirmation_code_type::ConfirmationCodeType, email::Email}, query::{user::get_user_id_from_email, verify_user_password}, utils::error::log_map};
+use crate::{clients::email::EmailClient, command::confirmation_code::create::create_confirmation_code, configuration::Settings, error::{api::session::SessionCreationError, query::user::{GetUserIdError,UserPasswordVerificationError}}, model::{confirmation_code_type::ConfirmationCodeType, email::Email}, query::user::{get_user_id::get_user_id_from_email, verify_password::verify_user_password}, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's json body.
 #[derive(Deserialize, Debug)]
@@ -25,29 +25,29 @@ pub async fn post_session(
     db_conn: Data<PgPool>,
     email_client: Data<EmailClient>,
     config: Data<Settings>
-) -> actix_web::Result<HttpResponse, UserLoginError> {
+) -> actix_web::Result<HttpResponse, SessionCreationError> {
     tracing::debug!("Acquiring the database connection.");
     let mut db_conn = db_conn.acquire()
         .await
-        .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), UserLoginError::UnexpectedError))?;
+        .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), SessionCreationError::UnexpectedError))?;
 
     tracing::debug!("Begining a transaction");
     let mut transaction = db_conn.begin()
         .await
-        .map_err(|err| log_map(format!("Cannot begin the transaction.\n{}", err), UserLoginError::UnexpectedError))?;
+        .map_err(|err| log_map(format!("Cannot begin the transaction.\n{}", err), SessionCreationError::UnexpectedError))?;
 
     tracing::info!("Getting user id.");
     let user_id = match get_user_id_from_email(&mut *transaction, &body.email).await {
-        Err(GetUserIdError::NotExists) => return Err(UserLoginError::UserNotExists),
-        Err(GetUserIdError::Sqlx(err)) => return log_map(err, Err(UserLoginError::UnexpectedError)),
+        Err(GetUserIdError::NotExists) => return Err(SessionCreationError::UserNotExists),
+        Err(GetUserIdError::Sqlx(err)) => return log_map(err, Err(SessionCreationError::UnexpectedError)),
         Ok(user_id) => user_id,
     };
 
     tracing::info!("Verifying the users password.");
     match verify_user_password(&mut *transaction, &user_id, &body.password).await {
-        Ok(false) => return Err(UserLoginError::WrongPassword),
-        Err(UserPasswordVerificationError::NotExists) => return Err(UserLoginError::UserNotExists),
-        Err(UserPasswordVerificationError::Sqlx(err)) => return log_map(err, Err(UserLoginError::UnexpectedError)),
+        Ok(false) => return Err(SessionCreationError::WrongPassword),
+        Err(UserPasswordVerificationError::NotExists) => return Err(SessionCreationError::UserNotExists),
+        Err(UserPasswordVerificationError::Sqlx(err)) => return log_map(err, Err(SessionCreationError::UnexpectedError)),
         _ => ()
     };
 
@@ -55,7 +55,7 @@ pub async fn post_session(
     let (confirmation_id, code) = create_confirmation_code(&mut *transaction, user_id, ConfirmationCodeType::Login)
         .await
         // unexpected because no error should happen
-        .map_err(|err| log_map(err, UserLoginError::UnexpectedError))?;
+        .map_err(|err| log_map(err, SessionCreationError::UnexpectedError))?;
 
     tracing::info!("Sending the confirmation code.");
     let sender_email = config.email.sender.clone();
@@ -77,7 +77,7 @@ pub async fn post_session(
                 .await
                 .map_err(|err| log_map(
                     format!("Unexpected error occured while commiting changes to the database.\n{}", err),
-                    UserLoginError::UnexpectedError
+                    SessionCreationError::UnexpectedError
                 ))?;
             Ok(HttpResponse::Ok().json(ResponseBody {
                 confirmation_id 
@@ -86,7 +86,7 @@ pub async fn post_session(
         Err(err) => {
             log_map(
                 format!("Email server has wrong configuration, couldn't send a confirmation email.\n{}", err),
-                Err(UserLoginError::UnexpectedError)
+                Err(SessionCreationError::UnexpectedError)
             )
         }
     }
