@@ -1,5 +1,5 @@
 use std::{collections::HashMap, str::FromStr};
-use authen::{clients::email::EmailClient, configuration::Settings, model::email::Email};
+use authen::{clients::email::EmailClient, settings::Settings, model::email::Email};
 use fake::{Fake, faker::{internet::en::SafeEmail, lorem::en::Sentence}};
 use wiremock::{Mock, MockServer, ResponseTemplate, http::Method, matchers::{body_json, header, method, path}};
 

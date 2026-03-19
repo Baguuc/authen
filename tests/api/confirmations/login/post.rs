@@ -1,4 +1,4 @@
-use authen::{configuration::Settings, utils::generation::generate_confirmation_code};
+use authen::{settings::Settings, utils::generation::generate_confirmation_code};
 use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
 use sqlx::Row;
 use uuid::Uuid;

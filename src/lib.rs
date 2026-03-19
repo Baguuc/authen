@@ -1,6 +1,6 @@
 pub mod startup;
 pub mod telemetry;
-pub mod configuration;
+pub mod settings;
 pub mod routes;
 pub mod crypto;
 pub mod model;

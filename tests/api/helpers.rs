@@ -1,5 +1,5 @@
 use argon2::Argon2;
-use authen::{configuration::{DatabaseSettings, Settings}, crypto::hash, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
+use authen::{crypto::hash, settings::{Settings, database::DatabaseSettings}, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
 use reqwest::{Client, Response};
 use secrecy::Secret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};

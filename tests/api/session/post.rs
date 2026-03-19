@@ -1,4 +1,4 @@
-use authen::configuration::Settings;
+use authen::settings::Settings;
 use fake::{Fake, faker::internet::en::{Password, SafeEmail}};
 use sqlx::Row;
 use uuid::Uuid;

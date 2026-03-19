@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use authen::{configuration::Settings, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
+use authen::{settings::Settings, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
 use tokio::task::JoinError;
 
 #[tokio::main]

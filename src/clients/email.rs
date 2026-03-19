@@ -2,7 +2,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use reqwest::{Method, header::{HeaderMap, HeaderName, HeaderValue}};
 
-use crate::{configuration::{EmailSendEnpointJsonFieldsSettings, EmailServerSettings}, error::client::email::EmailClientConstructionError, model::email::Email};
+use crate::{settings::email::{EmailSendEnpointJsonFieldsSettings, EmailServerSettings}, error::client::email::EmailClientConstructionError, model::email::Email};
 
 pub struct EmailClient {
     http_client: reqwest::Client,

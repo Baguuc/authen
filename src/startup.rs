@@ -1,5 +1,5 @@
 use crate::clients::email::EmailClient;
-use crate::configuration::Settings;
+use crate::settings::Settings;
 use crate::routes::api::login_confirmations::post::post_confirmations_login;
 use crate::routes::api::session::post::post_session;
 use crate::routes::api::registration_confirmations::delete::delete_confirmations_registration;

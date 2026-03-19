@@ -4,7 +4,7 @@ use sqlx::{Connection, PgPool};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{command::{confirmation_code::delete::delete_confirmation_code, user::delete::delete_user}, configuration::Settings, error::{api::confirmation_code::ConfirmationError, query::confirmation_code::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::confirmation_code::{get_user_id::get_user_id_from_registration_code, verify::verify_confirmation_code}, utils::error::log_map};
+use crate::{command::{confirmation_code::delete::delete_confirmation_code, user::delete::delete_user}, settings::Settings, error::{api::confirmation_code::ConfirmationError, query::confirmation_code::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::confirmation_code::{get_user_id::get_user_id_from_registration_code, verify::verify_confirmation_code}, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's path.
 #[derive(Deserialize, Debug)]
