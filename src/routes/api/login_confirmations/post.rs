@@ -40,6 +40,7 @@ pub async fn post_confirmations_login(
     let code_id = path_data.confirmation_id;
     let code = body.code;
     let argon2_instance = config.argon2_instance();
+    let jwt_header = config.jwt_header();
 
     tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
     match verify_confirmation_code(&mut *db_conn, argon2_instance, code_id, code, ConfirmationCodeType::Login).await {
@@ -54,7 +55,7 @@ pub async fn post_confirmations_login(
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
     tracing::info!("Generating the token.");
-    let token = generate_user_token(user_id, &config.jwt.hashing_key)
+    let token = generate_user_token(&config.jwt.hashing_key, &jwt_header, config.jwt_expires_in(), user_id)
         .map_err(|err| log_map(format!("Cannot generate the user token, JWT error: {}", err), ConfirmationError::UnexpectedError))?;
 
     tracing::info!("Deleting the confirmation code.");

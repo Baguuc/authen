@@ -1,4 +1,6 @@
 use argon2::{Algorithm, Argon2, Params, Version};
+use chrono::Duration;
+use jsonwebtoken::{Header, Validation};
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
@@ -52,6 +54,21 @@ impl Settings {
         } else {
             Argon2::default()
         }
+    }
+
+    /// Construct a JWT header from jwt settings
+    pub fn jwt_header(&self) -> Header {
+        Header::new(self.jwt.algorithm)
+    }
+
+    /// Construct a JWT validation from jwt settings
+    pub fn jwt_validation(&self) -> Validation {
+        Validation::new(self.jwt.algorithm)
+    }
+
+    /// Get a chrono::Duration from configuration's value of expires_in
+    pub fn jwt_expires_in(&self) -> Duration {
+        Duration::minutes(self.jwt.expires_in)
     }
 }
 
@@ -129,7 +146,10 @@ pub struct EmailSendEnpointJsonFieldsSettings {
 
 #[derive(serde::Deserialize, Clone)]
 pub struct JwtSettings {
-    pub hashing_key: String
+    pub algorithm: jsonwebtoken::Algorithm,
+    pub hashing_key: String,
+    // value provided in minutes
+    pub expires_in: i64
 }
 
 #[derive(serde::Deserialize, Clone)]
