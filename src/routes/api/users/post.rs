@@ -35,9 +35,12 @@ pub async fn post_users(
     let mut transaction = db_conn.begin().await
         .map_err(|err| log_map(format!("Cannot start the transaction.\n{}", err), UserRegistrationError::UnexpectedError))?;
     
+    let argon2_instance = config.argon2_instance();
+
     tracing::info!("Creating the user.");
     let user_id = create_user(
         &mut *transaction,
+        &argon2_instance,
         form_body.email.as_ref(),
         form_body.password.expose_secret()
     )
@@ -56,7 +59,7 @@ pub async fn post_users(
         })?;
     
     tracing::info!("Creating the registration code.");
-    let (confirmation_id, code) = create_confirmation_code(&mut *transaction, user_id, ConfirmationCodeType::Registration)
+    let (confirmation_id, code) = create_confirmation_code(&mut *transaction, &argon2_instance, user_id, ConfirmationCodeType::Registration)
         .await
         // unexpected because no error should happen
         .map_err(|err| log_map(err, UserRegistrationError::UnexpectedError))?;

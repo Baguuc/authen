@@ -1,4 +1,4 @@
-use authen::utils::generation::generate_confirmation_code;
+use authen::{configuration::Settings, utils::generation::generate_confirmation_code};
 use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
 use sqlx::Row;
 use uuid::Uuid;
@@ -18,13 +18,15 @@ struct LoginConfirmationResponseBody {
 #[tokio::test]
 async fn post_confirmations_login_returns_a_session_token() {
     let (app, mock_server, http_client, _, mock) = init().await;
+    let config = Settings::parse().unwrap();
+    let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
     let password: String = Password(1..16).fake();
 
-    create_active_user(&app.db_pool, &email, &password).await;
+    create_active_user(&app.db_pool, &argon2_instance, &email, &password).await;
 
     // Act
     // register the user
@@ -51,13 +53,15 @@ async fn post_confirmations_login_returns_a_session_token() {
 #[tokio::test]
 async fn post_confirmations_login_deletes_the_code() {
     let (app, mock_server, http_client, _, mock) = init().await;
+    let config = Settings::parse().unwrap();
+    let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
     let password: String = Password(1..16).fake();
 
-    create_active_user(&app.db_pool, &email, &password).await;
+    create_active_user(&app.db_pool, &argon2_instance, &email, &password).await;
 
     // Act
     // register the user
@@ -90,13 +94,15 @@ async fn post_confirmations_login_deletes_the_code() {
 #[tokio::test]
 async fn post_confirmations_login_rejects_wrong_code() {
     let (app, mock_server, http_client, _, mock) = init().await;
+    let config = Settings::parse().unwrap();
+    let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
     // any password length should be fine, testing only up to 16 characters as further is not needed.
     let password: String = Password(1..16).fake();
 
-    create_active_user(&app.db_pool, &email, &password).await;
+    create_active_user(&app.db_pool, &argon2_instance, &email, &password).await;
 
     // Act
     // register the user

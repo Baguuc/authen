@@ -4,7 +4,7 @@ use sqlx::{Connection, PgPool};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{command::{user::activate::activate_user, confirmation_code::delete::delete_confirmation_code}, error::{api::confirmation_code::ConfirmationError, query::confirmation_code::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::confirmation_code::{get_user_id::get_user_id_from_registration_code, verify::verify_confirmation_code}, utils::error::log_map};
+use crate::{command::{confirmation_code::delete::delete_confirmation_code, user::activate::activate_user}, configuration::Settings, error::{api::confirmation_code::ConfirmationError, query::confirmation_code::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::confirmation_code::{get_user_id::get_user_id_from_registration_code, verify::verify_confirmation_code}, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's path.
 #[derive(Deserialize, Debug)]
@@ -19,11 +19,12 @@ pub struct JsonData {
 }
 
 /// User registration confirmation endpoint available @ POST /api/confirmations/registration/{}
-#[instrument(name = "Confirming a user registration.", skip(db_conn))]
+#[instrument(name = "Confirming a user registration.", skip(db_conn, config))]
 pub async fn post_confirmations_registration(
     path_data: Path<PathData>,
     Json(body): Json<JsonData>,
     db_conn: Data<PgPool>,
+    config: Data<Settings>
 ) -> actix_web::Result<HttpResponse, ConfirmationError> {
     tracing::debug!("Acquiring the database connection.");
     let mut db_conn = db_conn.acquire()
@@ -38,8 +39,10 @@ pub async fn post_confirmations_registration(
     let code_id = path_data.confirmation_id;
     let code = body.code;
 
+    let argon2_instance = config.argon2_instance();
+
     tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
-    match verify_confirmation_code(&mut *transaction, code_id, code, ConfirmationCodeType::Registration).await {
+    match verify_confirmation_code(&mut *transaction, argon2_instance, code_id, code, ConfirmationCodeType::Registration).await {
         Ok(false) => return Err(ConfirmationError::WrongCode),
         Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
         Err(ConfirmationCodeVerificationError::NotExists) => return Err(ConfirmationError::ConfirmationNotExists),

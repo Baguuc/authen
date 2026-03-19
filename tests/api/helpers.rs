@@ -1,3 +1,4 @@
+use argon2::Argon2;
 use authen::{configuration::{DatabaseSettings, Settings}, crypto::hash, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
 use reqwest::{Client, Response};
 use secrecy::Secret;
@@ -134,11 +135,11 @@ impl TestApp {
 }
 
 /// Create a already activated user for testing purposes
-pub async fn create_active_user(db_conn: &PgPool, email: &String, password: &String) {
+pub async fn create_active_user<'a>(db_conn: &PgPool, argon2_instance: &Argon2<'a>, email: &String, password: &String) {
     let _ = sqlx::query("INSERT INTO users (id, email, password_hash, active) VALUES ($1, $2, $3, true);")
         .bind(Uuid::new_v4())
         .bind(&email)
-        .bind(&hash(&password).unwrap())
+        .bind(&hash(&password, argon2_instance).unwrap())
         .execute(db_conn)
         .await;
 }
@@ -147,7 +148,7 @@ pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
     LazyLock::force(&TRACING);
 
     // Randomise configuration to ensure test isolation
-    let configuration = {
+    let mut configuration = {
         let mut c = Settings::parse().expect("Failed to read configuration.");
         // Use a different database for each test case
         c.database.database_name = Uuid::new_v4().to_string();
@@ -163,14 +164,14 @@ pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
     };
 
     // Create and migrate the database
-    configure_database(&configuration.database).await;
+    configure_database(&mut configuration).await;
 
     // Launch the application as a background task
     let application = Application::configure(configuration.clone())
         .await
         .expect("Failed to build application.");
     let application_port = application.port();
-    let database_connection = Application::database_connection(configuration.database);
+    let database_connection = Application::database_connection(configuration);
     let _ = tokio::spawn(application.run());
 
     let client = reqwest::Client::builder()
@@ -238,19 +239,19 @@ pub async fn get_login_confirmation_code_from_request(mock_server: &MockServer, 
     confirmation_code
 }
 
-async fn configure_database(config: &DatabaseSettings) -> PgPool {
+async fn configure_database(config: &mut Settings) -> PgPool {
     // Create database
     let maintenance_settings = DatabaseSettings {
         database_name: String::from("postgres"),
         username: String::from("postgres"),
         password: Secret::new(String::from("123")),
-        ..config.clone()
+        ..config.database.clone()
     };
     let mut connection = PgConnection::connect_with(&maintenance_settings.connect_options())
         .await
         .expect("Failed to connect to Postgres");
     connection
-        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database.database_name).as_str())
         .await
         .expect("Failed to create database.");
 

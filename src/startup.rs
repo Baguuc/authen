@@ -1,5 +1,5 @@
 use crate::clients::email::EmailClient;
-use crate::configuration::{DatabaseSettings, EmailServerSettings, Settings};
+use crate::configuration::Settings;
 use crate::routes::api::login_confirmations::post::post_confirmations_login;
 use crate::routes::api::session::post::post_session;
 use crate::routes::api::registration_confirmations::delete::delete_confirmations_registration;
@@ -50,12 +50,12 @@ impl Application {
     }
 
     /// Get a database connection
-    pub fn database_connection(configuration: DatabaseSettings) -> PgPool {
+    pub fn database_connection(configuration: Settings) -> PgPool {
         PgPoolOptions::new().connect_lazy_with(configuration.connect_options())
     }
 
-    pub fn email_client(configuration: EmailServerSettings) -> EmailClient {
-        EmailClient::new(configuration).unwrap()
+    pub fn email_client(configuration: Settings) -> EmailClient {
+        EmailClient::new(configuration.email.server).unwrap()
     }
 
     /// Get the server (actix_web::HttpServer) instance
@@ -64,8 +64,8 @@ impl Application {
         configuration: Settings
     ) -> Result<Server, anyhow::Error> {
         let config = Data::new(configuration.clone());
-        let db_pool = Data::new(Self::database_connection(configuration.database));
-        let email_client = Data::new(Self::email_client(configuration.email.server));
+        let db_pool = Data::new(Self::database_connection(configuration.clone()));
+        let email_client = Data::new(Self::email_client(configuration.clone()));
         
         let server = HttpServer::new(move || {
             App::new()

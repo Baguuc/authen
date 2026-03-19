@@ -43,8 +43,10 @@ pub async fn post_session(
         Ok(user_id) => user_id,
     };
 
+    let argon2_instance = config.argon2_instance();
+
     tracing::info!("Verifying the users password.");
-    match verify_user_password(&mut *transaction, &user_id, &body.password).await {
+    match verify_user_password(&mut *transaction, &argon2_instance, &user_id, &body.password).await {
         Ok(false) => return Err(SessionCreationError::WrongPassword),
         Err(UserPasswordVerificationError::NotExists) => return Err(SessionCreationError::UserNotExists),
         Err(UserPasswordVerificationError::Sqlx(err)) => return log_map(err, Err(SessionCreationError::UnexpectedError)),
@@ -52,7 +54,7 @@ pub async fn post_session(
     };
 
     tracing::info!("Creating the registration code.");
-    let (confirmation_id, code) = create_confirmation_code(&mut *transaction, user_id, ConfirmationCodeType::Login)
+    let (confirmation_id, code) = create_confirmation_code(&mut *transaction, &argon2_instance, user_id, ConfirmationCodeType::Login)
         .await
         // unexpected because no error should happen
         .map_err(|err| log_map(err, SessionCreationError::UnexpectedError))?;

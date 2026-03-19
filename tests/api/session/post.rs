@@ -1,3 +1,4 @@
+use authen::configuration::Settings;
 use fake::{Fake, faker::internet::en::{Password, SafeEmail}};
 use sqlx::Row;
 use uuid::Uuid;
@@ -11,6 +12,8 @@ struct ResponseBody {
 #[tokio::test]
 async fn post_session_returns_200_for_valid_data() {
     let (app, mock_server, http_client, _, mock) = init().await;
+    let config = Settings::parse().unwrap();
+    let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
@@ -19,7 +22,7 @@ async fn post_session_returns_200_for_valid_data() {
 
     // lets assume that there is already a user in the database,
     // we are already testing the registration in its own tests
-    create_active_user(&app.db_pool, &email, &password).await;
+    create_active_user(&app.db_pool, &argon2_instance, &email, &password).await;
 
     // Act
     let status = {
@@ -38,6 +41,8 @@ async fn post_session_returns_200_for_valid_data() {
 async fn post_session_persists_valid_data() {
     // Arrange
     let (app, mock_server, http_client, _, mock) = init().await;
+    let config = Settings::parse().unwrap();
+    let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
     let email = SafeEmail().fake();
@@ -45,7 +50,7 @@ async fn post_session_persists_valid_data() {
 
     // lets assume that there is already a user in the database,
     // we are already testing the registration in its own tests
-    create_active_user(&app.db_pool, &email, &password).await;
+    create_active_user(&app.db_pool, &argon2_instance, &email, &password).await;
 
     // Act
     let response = TestApp::post_session(&http_client, &app.address, Some(email), Some(password))
@@ -75,6 +80,8 @@ async fn post_session_persists_valid_data() {
 async fn post_session_sends_the_link() {
     // Arrange
     let (app, mock_server, http_client, _, mock) = init().await;
+    let config = Settings::parse().unwrap();
+    let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
@@ -83,7 +90,7 @@ async fn post_session_sends_the_link() {
 
     // lets assume that there is already a user in the database,
     // we are already testing the registration in its own tests
-    create_active_user(&app.db_pool, &email, &password).await;
+    create_active_user(&app.db_pool, &argon2_instance, &email, &password).await;
 
     // Act
     let _ = TestApp::post_session(&http_client, &app.address, Some(email), Some(password))
@@ -122,6 +129,8 @@ async fn post_session_returns_400_for_invalid_email() {
 async fn post_session_returns_400_for_wrong_password() {
     // Arrange
     let (app, _, http_client, _, _mock) = init().await;
+    let config = Settings::parse().unwrap();
+    let argon2_instance = config.argon2_instance();
 
     // no mock because it shouldn't send any email anyways
 
@@ -130,7 +139,7 @@ async fn post_session_returns_400_for_wrong_password() {
     let original_password: String = Password(1..16).fake();
     let fake_password: String = Password(1..16).fake();
 
-    create_active_user(&app.db_pool, &email, &original_password).await;
+    create_active_user(&app.db_pool, &argon2_instance, &email, &original_password).await;
 
     // Act
     let status = {

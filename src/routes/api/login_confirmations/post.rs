@@ -39,9 +39,10 @@ pub async fn post_confirmations_login(
 
     let code_id = path_data.confirmation_id;
     let code = body.code;
+    let argon2_instance = config.argon2_instance();
 
     tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
-    match verify_confirmation_code(&mut *db_conn, code_id, code, ConfirmationCodeType::Login).await {
+    match verify_confirmation_code(&mut *db_conn, argon2_instance, code_id, code, ConfirmationCodeType::Login).await {
         Ok(false) => return Err(ConfirmationError::WrongCode),
         Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
         Err(ConfirmationCodeVerificationError::NotExists) => return Err(ConfirmationError::ConfirmationNotExists),
