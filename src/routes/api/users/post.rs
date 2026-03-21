@@ -70,9 +70,9 @@ pub async fn post_users(
         sender_email,
         form_body.email,
         // content customization and link will be implemented in the near future
-        String::from("Confirm your account"),
-        format!("Confirm your account using the code {}", code),
-        format!("<b>Confirm your account using the code {}<b>", code)
+        String::from(config.email.registration.subject.clone()),
+        String::from(config.email.registration.text_body.as_ref().replace("%code%", &code)),
+        String::from(config.email.registration.html_body.as_ref().replace("%code%", &code)),
     )
     .await;
 

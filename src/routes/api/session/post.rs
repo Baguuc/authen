@@ -65,9 +65,9 @@ pub async fn post_session(
         sender_email,
         body.email,
         // content customization and link will be implemented in the near future
-        String::from("Confirm your account"),
-        format!("Confirm your account using the code {}", code),
-        format!("<b>Confirm your account using the code {}<b>", code)
+        String::from(config.email.login.subject.clone()),
+        String::from(config.email.login.text_body.as_ref().replace("%code%", &code)),
+        String::from(config.email.login.html_body.as_ref().replace("%code%", &code)),
     )
     .await;
 
