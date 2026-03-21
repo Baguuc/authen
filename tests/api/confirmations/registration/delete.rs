@@ -2,7 +2,7 @@ use authen::{utils::generation::generate_confirmation_code};
 use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
 use sqlx::Row;
 use uuid::Uuid;
-use crate::helpers::{TestApp, get_registration_confirmation_code_from_request, init};
+use crate::helpers::{TestApp, get_registration_confirmation_code_from_request, get_request_from_mock_server, init};
 
 #[derive(serde::Deserialize)]
 struct RegistrationResponseBody {
@@ -11,7 +11,7 @@ struct RegistrationResponseBody {
 
 #[tokio::test]
 async fn delete_confirmations_registration_changes_deletes_the_user() {
-    let (app, mock_server, http_client, _, mock) = init().await;
+    let (app, mock_server, http_client, config, mock) = init().await;
     mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
@@ -36,7 +36,8 @@ async fn delete_confirmations_registration_changes_deletes_the_user() {
     // check if user is initially inactive
     assert!(user_exists);
 
-    let confirmation_code = get_registration_confirmation_code_from_request(&mock_server, 0).await;
+    let recieved_request = get_request_from_mock_server(&mock_server, 0).await;
+    let confirmation_code = get_registration_confirmation_code_from_request(recieved_request, config).await;
 
     let response = TestApp::delete_confirmations_registration(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
@@ -54,7 +55,7 @@ async fn delete_confirmations_registration_changes_deletes_the_user() {
 
 #[tokio::test]
 async fn delete_confirmations_registration_deletes_the_code() {
-    let (app, mock_server, http_client, _, mock) = init().await;
+    let (app, mock_server, http_client, config, mock) = init().await;
     mock.mount(&mock_server).await;
 
     let email: String = SafeEmail().fake();
@@ -71,7 +72,8 @@ async fn delete_confirmations_registration_deletes_the_code() {
         .expect("Wrong response shape.");
 
     let confirmation_id = response.confirmation_id;
-    let confirmation_code = get_registration_confirmation_code_from_request(&mock_server, 0).await;
+    let recieved_request = get_request_from_mock_server(&mock_server, 0).await;
+    let confirmation_code = get_registration_confirmation_code_from_request(recieved_request, config).await;
 
     let response = TestApp::delete_confirmations_registration(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await

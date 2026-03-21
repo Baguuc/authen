@@ -2,7 +2,7 @@ use authen::{settings::Settings, utils::generation::generate_confirmation_code};
 use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
 use sqlx::Row;
 use uuid::Uuid;
-use crate::helpers::{TestApp, create_active_user, get_login_confirmation_code_from_request, init};
+use crate::helpers::{TestApp, create_active_user, get_login_confirmation_code_from_request, get_request_from_mock_server, init};
 
 #[derive(serde::Deserialize)]
 struct LoginResponseBody {
@@ -38,7 +38,8 @@ async fn post_confirmations_login_returns_a_session_token() {
         .expect("Wrong login response.");
 
     let confirmation_id = json_body_data.confirmation_id;
-    let confirmation_code = get_login_confirmation_code_from_request(&mock_server, 0).await;
+    let recieved_request = get_request_from_mock_server(&mock_server, 0).await;
+    let confirmation_code = get_login_confirmation_code_from_request(recieved_request, config).await;
 
     let response = TestApp::post_confirmations_login(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
@@ -73,7 +74,8 @@ async fn post_confirmations_login_deletes_the_code() {
         .expect("Wrong login response.");
 
     let confirmation_id = json_body_data.confirmation_id;
-    let confirmation_code = get_login_confirmation_code_from_request(&mock_server, 0).await;
+    let recieved_request = get_request_from_mock_server(&mock_server, 0).await;
+    let confirmation_code = get_login_confirmation_code_from_request(recieved_request, config).await;
 
     let response = TestApp::post_confirmations_login(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await

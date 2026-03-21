@@ -217,24 +217,44 @@ pub async fn get_request_from_mock_server(mock_server: &MockServer, request_inde
         .clone()
 }
 
-pub async fn get_registration_confirmation_code_from_request(mock_server: &MockServer, request_index: usize) -> String {
-    let recieved_request = get_request_from_mock_server(mock_server, request_index).await;
-    let recieved_request_body: HashMap<String, String> = recieved_request.body_json()
+pub async fn get_registration_confirmation_code_from_request(request: Request, config: Settings) -> String {
+    let recieved_request_body: HashMap<String, String> = request.body_json()
         .unwrap();
     let text_body: &String = recieved_request_body.get("TextBody")
         .expect("No TextBody in the request.");
-    let confirmation_code = text_body.replace("Confirm your account using the code ", "");
+    
+    // split the body in two parts with the code placeholder in the middle
+    let parts = config.email.registration.text_body
+        .as_ref()
+        .split("%code%")
+        .collect::<Vec<&str>>();
+
+    // the validation ensures the code is appearing exactly one time
+    let part1 = parts.get(0).unwrap();
+    let part2 = parts.get(1).unwrap();
+
+    let confirmation_code = text_body.replace(part1, "").replace(part2, "");
 
     confirmation_code
 }
 
-pub async fn get_login_confirmation_code_from_request(mock_server: &MockServer, request_index: usize) -> String {
-    let recieved_request = get_request_from_mock_server(mock_server, request_index).await;
-    let recieved_request_body: HashMap<String, String> = recieved_request.body_json()
+pub async fn get_login_confirmation_code_from_request(request: Request, config: Settings) -> String {
+    let recieved_request_body: HashMap<String, String> = request.body_json()
         .unwrap();
     let text_body: &String = recieved_request_body.get("TextBody")
         .expect("No TextBody in the request.");
-    let confirmation_code = text_body.replace("Confirm your account using the code ", "");
+    
+    // split the body in two parts with the code placeholder in the middle
+    let parts = config.email.login.text_body
+        .as_ref()
+        .split("%code%")
+        .collect::<Vec<&str>>();
+
+    // the validation ensures the code is appearing exactly one time
+    let part1 = parts.get(0).unwrap();
+    let part2 = parts.get(1).unwrap();
+
+    let confirmation_code = text_body.replace(part1, "").replace(part2, "");
 
     confirmation_code
 }
