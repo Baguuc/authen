@@ -1,7 +1,7 @@
 use fake::{Fake, faker::internet::en::{Password, SafeEmail}};
 use sqlx::Row;
 use uuid::Uuid;
-use crate::helpers::{TestApp, init};
+use crate::helpers::{app::TestApp, init};
 
 #[derive(serde::Deserialize)]
 struct ResponseBody {

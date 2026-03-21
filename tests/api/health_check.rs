@@ -1,4 +1,4 @@
-use crate::helpers::spawn_app;
+use crate::helpers::init;
 
 #[derive(serde::Deserialize)]
 struct ResponseBody {
@@ -7,11 +7,10 @@ struct ResponseBody {
 
 #[tokio::test]
 async fn health_check_returns_200_and_ok_msg() {
-    let app = spawn_app(None).await;
-    let client = reqwest::Client::new();
+    let (app, _, http_client, _, _) = init().await;
 
     // Act
-    let response = client
+    let response = http_client
         // Use the returned application address
         .get(&format!("{}/api/health", &app.address))
         .send()

@@ -2,7 +2,7 @@ use authen::{auth::otp::generate_confirmation_code};
 use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
 use sqlx::Row;
 use uuid::Uuid;
-use crate::helpers::{TestApp, get_registration_confirmation_code_from_request, get_request_from_mock_server, init};
+use crate::helpers::{app::TestApp, mock::{get_request_from_mock_server, get_registration_confirmation_code_from_request}, init};
 
 #[derive(serde::Deserialize)]
 struct RegistrationResponseBody {

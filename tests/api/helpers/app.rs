@@ -1,25 +1,11 @@
-use argon2::Argon2;
-use authen::{auth::hash::hash_string, settings::{Settings, database::DatabaseSettings}, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
-use reqwest::{Client, Response};
-use secrecy::Secret;
-use sqlx::{Connection, Executor, PgConnection, PgPool};
-use wiremock::{Mock, MockServer, Request, ResponseTemplate, matchers::{method, path}};
 use std::{collections::HashMap, sync::LazyLock};
+
+use authen::{settings::Settings, startup::Application};
+use reqwest::{Client, Response};
+use sqlx::PgPool;
 use uuid::Uuid;
 
-// Ensure that the `tracing` stack is only initialised once using `once_cell`
-static TRACING: LazyLock<()> = LazyLock::new(|| {
-    let default_filter_level = "info".to_string();
-    let subscriber_name = "test".to_string();
-
-    if std::env::var("TEST_LOG").is_ok() {
-        let subscriber = get_tracing_subscriber(subscriber_name, default_filter_level, std::io::stdout);
-        init_tracing_subscriber(subscriber);
-    } else {
-        let subscriber = get_tracing_subscriber(subscriber_name, default_filter_level, std::io::sink);
-        init_tracing_subscriber(subscriber);
-    };
-});
+use crate::helpers::{TRACING, database::configure_database};
 
 pub struct TestApp {
     pub address: String,
@@ -134,26 +120,6 @@ impl TestApp {
     }
 }
 
-/// Create a already activated user for testing purposes
-pub async fn create_active_user<'a>(db_conn: &PgPool, argon2_instance: &Argon2<'a>, email: &String, password: &String) {
-    let _ = sqlx::query("INSERT INTO users (id, email, password_hash, active) VALUES ($1, $2, $3, true);")
-        .bind(Uuid::new_v4())
-        .bind(&email)
-        .bind(&hash_string(&password, argon2_instance).unwrap())
-        .execute(db_conn)
-        .await;
-}
-
-/// Create inactivated user for testing purposes
-pub async fn create_inactive_user<'a>(db_conn: &PgPool, argon2_instance: &Argon2<'a>, email: &String, password: &String) {
-    let _ = sqlx::query("INSERT INTO users (id, email, password_hash, active) VALUES ($1, $2, $3, false);")
-        .bind(Uuid::new_v4())
-        .bind(&email)
-        .bind(&hash_string(&password, argon2_instance).unwrap())
-        .execute(db_conn)
-        .await;
-}
-
 pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
     LazyLock::force(&TRACING);
 
@@ -198,102 +164,4 @@ pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
     };
 
     test_app
-}
-
-pub async fn init() -> (TestApp, MockServer, reqwest::Client, Settings, Mock) {
-    let mock_server = MockServer::start().await;
-    let app = spawn_app(Some(mock_server.uri())).await;
-    let http_client = reqwest::Client::new();
-    let config = Settings::parse().unwrap();
-    
-    let mock = get_mock_email_api(&config, 1).await;
-
-    (app, mock_server, http_client, config, mock)
-}
-
-async fn get_mock_email_api(config: &Settings, expected_email_count: u64) -> Mock {
-    Mock::given(method(config.email.server.send_endpoint.method.clone()))
-        .and(path(config.email.server.send_endpoint.route.clone()))
-        .respond_with(ResponseTemplate::new(200))
-        .expect(expected_email_count)
-}
-
-pub async fn get_request_from_mock_server(mock_server: &MockServer, request_index: usize) -> Request {
-    mock_server.received_requests()
-        .await
-        .expect("Mock email server haven't got the request.")
-        .get(request_index)
-        .unwrap()
-        .clone()
-}
-
-pub async fn get_registration_confirmation_code_from_request(request: Request, config: Settings) -> String {
-    let recieved_request_body: HashMap<String, String> = request.body_json()
-        .unwrap();
-    let text_body: &String = recieved_request_body.get("TextBody")
-        .expect("No TextBody in the request.");
-    
-    let email_config = config.registration_confirmation_email();
-    // split the body in two parts with the code placeholder in the middle
-    let parts = email_config.text_body
-        .as_ref()
-        .split("%code%")
-        .collect::<Vec<&str>>();
-
-    // the validation ensures the code is appearing exactly one time
-    let part1 = parts.get(0).unwrap();
-    let part2 = parts.get(1).unwrap();
-
-    let confirmation_code = text_body.replace(part1, "").replace(part2, "");
-
-    confirmation_code
-}
-
-pub async fn get_login_confirmation_code_from_request(request: Request, config: Settings) -> String {
-    let recieved_request_body: HashMap<String, String> = request.body_json()
-        .unwrap();
-    let text_body: &String = recieved_request_body.get("TextBody")
-        .expect("No TextBody in the request.");
-    
-    let email_config = config.login_confirmation_email();
-    // split the body in two parts with the code placeholder in the middle
-    let parts = email_config.text_body
-        .as_ref()
-        .split("%code%")
-        .collect::<Vec<&str>>();
-
-    // the validation ensures the code is appearing exactly one time
-    let part1 = parts.get(0).unwrap();
-    let part2 = parts.get(1).unwrap();
-
-    let confirmation_code = text_body.replace(part1, "").replace(part2, "");
-
-    confirmation_code
-}
-
-async fn configure_database(config: &mut Settings) -> PgPool {
-    // Create database
-    let maintenance_settings = DatabaseSettings {
-        database_name: String::from("postgres"),
-        username: String::from("postgres"),
-        password: Secret::new(String::from("123")),
-        ..config.database.clone()
-    };
-    let mut connection = PgConnection::connect_with(&maintenance_settings.connect_options())
-        .await
-        .expect("Failed to connect to Postgres");
-    connection
-        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database.database_name).as_str())
-        .await
-        .expect("Failed to create database.");
-
-    // Migrate database
-    let connection_pool = PgPool::connect_with(config.connect_options())
-        .await
-        .expect("Failed to connect to Postgres.");
-    sqlx::migrate!("./migrations")
-        .run(&connection_pool)
-        .await
-        .expect("Failed to migrate the database");
-    connection_pool
 }

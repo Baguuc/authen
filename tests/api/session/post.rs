@@ -1,8 +1,7 @@
-use authen::settings::Settings;
 use fake::{Fake, faker::internet::en::{Password, SafeEmail}};
 use sqlx::Row;
 use uuid::Uuid;
-use crate::helpers::{TestApp, create_active_user, create_inactive_user, init};
+use crate::helpers::{app::TestApp, database::commands::{create_active_user, create_inactive_user}, init};
 
 #[derive(serde::Deserialize)]
 struct ResponseBody {
