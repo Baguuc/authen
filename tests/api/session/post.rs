@@ -2,7 +2,7 @@ use authen::settings::Settings;
 use fake::{Fake, faker::internet::en::{Password, SafeEmail}};
 use sqlx::Row;
 use uuid::Uuid;
-use crate::helpers::{TestApp, create_active_user, init};
+use crate::helpers::{TestApp, create_active_user, create_inactive_user, init};
 
 #[derive(serde::Deserialize)]
 struct ResponseBody {
@@ -11,8 +11,7 @@ struct ResponseBody {
 
 #[tokio::test]
 async fn post_session_returns_200_for_valid_data() {
-    let (app, mock_server, http_client, _, mock) = init().await;
-    let config = Settings::parse().unwrap();
+    let (app, mock_server, http_client, config, mock) = init().await;
     let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
@@ -40,8 +39,7 @@ async fn post_session_returns_200_for_valid_data() {
 #[tokio::test]
 async fn post_session_persists_valid_data() {
     // Arrange
-    let (app, mock_server, http_client, _, mock) = init().await;
-    let config = Settings::parse().unwrap();
+    let (app, mock_server, http_client, config, mock) = init().await;
     let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
@@ -79,8 +77,7 @@ async fn post_session_persists_valid_data() {
 #[tokio::test]
 async fn post_session_sends_the_link() {
     // Arrange
-    let (app, mock_server, http_client, _, mock) = init().await;
-    let config = Settings::parse().unwrap();
+    let (app, mock_server, http_client, config, mock) = init().await;
     let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
@@ -99,6 +96,30 @@ async fn post_session_sends_the_link() {
 
     // Assert
     // mock will verify that the email has been sent
+}
+
+#[tokio::test]
+async fn post_session_rejects_if_the_user_is_inactive() {
+    // Arrange
+    let (app, _, http_client, config, _) = init().await;
+    let argon2_instance = config.argon2_instance();
+
+    let email: String = SafeEmail().fake();
+    // any password length should be fine, testing only up to 16 characters as further is not needed.
+    let password: String = Password(1..16).fake();
+
+    create_inactive_user(&app.db_pool, &argon2_instance, &email, &password).await;
+
+    // Act
+    let response = TestApp::post_session(&http_client, &app.address, Some(email), Some(password))
+        .await
+        .expect("Couldn't send the request to the API.");
+    let status = response.status();
+    let text_body = response.text().await.unwrap();
+
+    // Assert
+    assert_eq!(status, 403);
+    assert_eq!(text_body, String::from("USER_INACTIVE"));
 }
 
 #[tokio::test]
@@ -128,8 +149,7 @@ async fn post_session_returns_400_for_invalid_email() {
 #[tokio::test]
 async fn post_session_returns_400_for_wrong_password() {
     // Arrange
-    let (app, _, http_client, _, _mock) = init().await;
-    let config = Settings::parse().unwrap();
+    let (app, _, http_client, config, _mock) = init().await;
     let argon2_instance = config.argon2_instance();
 
     // no mock because it shouldn't send any email anyways

@@ -144,6 +144,16 @@ pub async fn create_active_user<'a>(db_conn: &PgPool, argon2_instance: &Argon2<'
         .await;
 }
 
+/// Create inactivated user for testing purposes
+pub async fn create_inactive_user<'a>(db_conn: &PgPool, argon2_instance: &Argon2<'a>, email: &String, password: &String) {
+    let _ = sqlx::query("INSERT INTO users (id, email, password_hash, active) VALUES ($1, $2, $3, false);")
+        .bind(Uuid::new_v4())
+        .bind(&email)
+        .bind(&hash_string(&password, argon2_instance).unwrap())
+        .execute(db_conn)
+        .await;
+}
+
 pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
     LazyLock::force(&TRACING);
 

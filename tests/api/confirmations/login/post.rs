@@ -17,8 +17,7 @@ struct LoginConfirmationResponseBody {
 
 #[tokio::test]
 async fn post_confirmations_login_returns_a_session_token() {
-    let (app, mock_server, http_client, _, mock) = init().await;
-    let config = Settings::parse().unwrap();
+    let (app, mock_server, http_client, config, mock) = init().await;
     let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
@@ -53,8 +52,7 @@ async fn post_confirmations_login_returns_a_session_token() {
 
 #[tokio::test]
 async fn post_confirmations_login_deletes_the_code() {
-    let (app, mock_server, http_client, _, mock) = init().await;
-    let config = Settings::parse().unwrap();
+    let (app, mock_server, http_client, config, mock) = init().await;
     let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
@@ -95,8 +93,7 @@ async fn post_confirmations_login_deletes_the_code() {
 
 #[tokio::test]
 async fn post_confirmations_login_rejects_wrong_code() {
-    let (app, mock_server, http_client, _, mock) = init().await;
-    let config = Settings::parse().unwrap();
+    let (app, mock_server, http_client, config, mock) = init().await;
     let argon2_instance = config.argon2_instance();
     mock.mount(&mock_server).await;
 
