@@ -4,7 +4,7 @@ use sqlx::{Connection, PgPool};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{clients::email::EmailClient, command::confirmation_code::create::create_confirmation_code, settings::Settings, error::{api::session::SessionCreationError, query::user::{GetUserIdError,UserPasswordVerificationError}}, model::{confirmation_code_type::ConfirmationCodeType, email::Email}, query::user::{get_user_id::get_user_id_from_email, verify_password::verify_user_password}, utils::error::log_map};
+use crate::{clients::email::EmailClient, command::confirmation_code::create::create_confirmation_code, error::{api::session::SessionCreationError, query::user::{GetUserIdError, UserCheckIsActiveError, UserPasswordVerificationError}}, model::{confirmation_code_type::ConfirmationCodeType, email::Email}, query::user::{get_user_id::get_user_id_from_email, is_active::is_user_active, verify_password::verify_user_password}, settings::Settings, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's json body.
 #[derive(Deserialize, Debug)]
@@ -42,6 +42,13 @@ pub async fn post_session(
         Err(GetUserIdError::Sqlx(err)) => return log_map(err, Err(SessionCreationError::UnexpectedError)),
         Ok(user_id) => user_id,
     };
+
+    match is_user_active(&mut *transaction, &user_id).await {
+        Err(UserCheckIsActiveError::NotExists) => return Err(SessionCreationError::UserNotExists),
+        Err(UserCheckIsActiveError::Sqlx(err)) => return log_map(err, Err(SessionCreationError::UnexpectedError)),
+        Ok(false) => return Err(SessionCreationError::UserNotActive),
+        _ => ()
+    }
 
     let argon2_instance = config.argon2_instance();
 

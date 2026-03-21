@@ -7,6 +7,9 @@ pub enum SessionCreationError {
     /// Confirmation with provided ID do not exists.
     #[error("USER_NOT_EXISTS")]
     UserNotExists,
+    /// The user is inactive.
+    #[error("USER_INACTIVE")]
+    UserNotActive,
     /// The password provided by the user is wrong.
     #[error("WRONG_PASSWORD")]
     WrongPassword,
@@ -19,6 +22,7 @@ impl actix_web::ResponseError for SessionCreationError {
     fn status_code(&self) -> actix_web::http::StatusCode {
         match self {
             Self::UserNotExists => StatusCode::UNAUTHORIZED,
+            Self::UserNotActive => StatusCode::FORBIDDEN,
             Self::WrongPassword => StatusCode::UNAUTHORIZED,
             Self::UnexpectedError => StatusCode::INTERNAL_SERVER_ERROR
         }

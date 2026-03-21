@@ -15,3 +15,12 @@ pub enum GetUserIdError {
     #[error("Database error: {0}")]
     Sqlx(#[from] sqlx::Error)
 }
+
+/// Enum modelling every error that can happen during checking if user is active.
+#[derive(thiserror::Error, Debug)]
+pub enum UserCheckIsActiveError {
+    #[error("Not exists.")]
+    NotExists,
+    #[error("Database error: {0}")]
+    Sqlx(#[from] sqlx::Error)
+}
