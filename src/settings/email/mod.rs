@@ -5,8 +5,8 @@ use crate::model::email::Email;
 pub struct EmailSettings {
     pub server: EmailServerSettings,
     pub sender: Email,
-    pub registration: RegistrationEmailSettings,
-    pub login: LoginEmailSettings    
+    pub registration: Option<ConfirmationEmailSettings>,
+    pub login: Option<ConfirmationEmailSettings>
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -39,14 +39,7 @@ pub struct EmailSendEnpointJsonFieldsSettings {
 }
 
 #[derive(serde::Deserialize, Clone)]
-pub struct RegistrationEmailSettings {
-    pub subject: String,
-    pub text_body: ConfirmationEmailBody,
-    pub html_body: ConfirmationEmailBody
-}
-
-#[derive(serde::Deserialize, Clone)]
-pub struct LoginEmailSettings {
+pub struct ConfirmationEmailSettings {
     pub subject: String,
     pub text_body: ConfirmationEmailBody,
     pub html_body: ConfirmationEmailBody

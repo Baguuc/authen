@@ -21,7 +21,7 @@ pub struct BodyData {
 /// User registration endpoint available @ POST /api/users
 #[instrument(name = "Registering a user", skip(db_conn, config, email_client))]
 pub async fn post_users(
-    Json(form_body): Json<BodyData>,
+    Json(body): Json<BodyData>,
     config: Data<Settings>,
     db_conn: Data<PgPool>,
     email_client: Data<EmailClient>
@@ -41,8 +41,8 @@ pub async fn post_users(
     let user_id = create_user(
         &mut *transaction,
         &argon2_instance,
-        form_body.email.as_ref(),
-        form_body.password.expose_secret()
+        body.email.as_ref(),
+        body.password.expose_secret()
     )
         .await
         .map_err(|err| {
@@ -64,15 +64,20 @@ pub async fn post_users(
         // unexpected because no error should happen
         .map_err(|err| log_map(err, UserRegistrationError::UnexpectedError))?;
 
-    tracing::info!("Sending the confirmation email.");
+    let email_config = config.registration_confirmation_email();
+    let subject = String::from(email_config.subject.clone());
+    let text_body = String::from(email_config.text_body.as_ref().replace("%code%", &code));
+    let html_body = String::from(email_config.html_body.as_ref().replace("%code%", &code));
+
+    tracing::info!("Sending the confirmation code.");
     let sender_email = config.email.sender.clone();
     let result = email_client.send_email(
         sender_email,
-        form_body.email,
+        body.email,
         // content customization and link will be implemented in the near future
-        String::from(config.email.registration.subject.clone()),
-        String::from(config.email.registration.text_body.as_ref().replace("%code%", &code)),
-        String::from(config.email.registration.html_body.as_ref().replace("%code%", &code)),
+        subject,
+        text_body,
+        html_body
     )
     .await;
 

@@ -53,11 +53,16 @@ pub async fn post_session(
         _ => ()
     };
 
-    tracing::info!("Creating the registration code.");
+    tracing::info!("Creating the confirmation code.");
     let (confirmation_id, code) = create_confirmation_code(&mut *transaction, &argon2_instance, user_id, ConfirmationCodeType::Login)
         .await
         // unexpected because no error should happen
         .map_err(|err| log_map(err, SessionCreationError::UnexpectedError))?;
+
+    let email_config = config.login_confirmation_email();
+    let subject = String::from(email_config.subject.clone());
+    let text_body = String::from(email_config.text_body.as_ref().replace("%code%", &code));
+    let html_body = String::from(email_config.html_body.as_ref().replace("%code%", &code));
 
     tracing::info!("Sending the confirmation code.");
     let sender_email = config.email.sender.clone();
@@ -65,9 +70,9 @@ pub async fn post_session(
         sender_email,
         body.email,
         // content customization and link will be implemented in the near future
-        String::from(config.email.login.subject.clone()),
-        String::from(config.email.login.text_body.as_ref().replace("%code%", &code)),
-        String::from(config.email.login.html_body.as_ref().replace("%code%", &code)),
+        subject,
+        text_body,
+        html_body
     )
     .await;
 

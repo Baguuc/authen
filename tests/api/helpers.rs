@@ -223,8 +223,9 @@ pub async fn get_registration_confirmation_code_from_request(request: Request, c
     let text_body: &String = recieved_request_body.get("TextBody")
         .expect("No TextBody in the request.");
     
+    let email_config = config.registration_confirmation_email();
     // split the body in two parts with the code placeholder in the middle
-    let parts = config.email.registration.text_body
+    let parts = email_config.text_body
         .as_ref()
         .split("%code%")
         .collect::<Vec<&str>>();
@@ -244,8 +245,9 @@ pub async fn get_login_confirmation_code_from_request(request: Request, config: 
     let text_body: &String = recieved_request_body.get("TextBody")
         .expect("No TextBody in the request.");
     
+    let email_config = config.login_confirmation_email();
     // split the body in two parts with the code placeholder in the middle
-    let parts = config.email.login.text_body
+    let parts = email_config.text_body
         .as_ref()
         .split("%code%")
         .collect::<Vec<&str>>();
