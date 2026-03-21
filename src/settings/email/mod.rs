@@ -1,3 +1,4 @@
+use serde::{Deserialize, de::Error};
 use crate::model::email::Email;
 
 #[derive(serde::Deserialize, Clone)]
@@ -40,13 +41,49 @@ pub struct EmailSendEnpointJsonFieldsSettings {
 #[derive(serde::Deserialize, Clone)]
 pub struct RegistrationEmailSettings {
     pub subject: String,
-    pub text_body: String,
-    pub html_body: String
+    pub text_body: ConfirmationEmailBody,
+    pub html_body: ConfirmationEmailBody
 }
 
 #[derive(serde::Deserialize, Clone)]
 pub struct LoginEmailSettings {
     pub subject: String,
-    pub text_body: String,
-    pub html_body: String
+    pub text_body: ConfirmationEmailBody,
+    pub html_body: ConfirmationEmailBody
+}
+
+#[derive(Clone)]
+pub struct ConfirmationEmailBody(String);
+
+impl ConfirmationEmailBody {
+    pub fn parse(s: String) -> Result<Self, String> {
+        let placeholder_count = s.matches("%code%")
+            .count();
+        
+        if placeholder_count == 0 {
+            return Err(String::from("There is not"))
+        }
+
+        if placeholder_count > 1 {
+            return Err(String::from("The code placeholder should appear exactly one time."))
+        }
+
+        Ok(Self(s))
+    }
+}
+
+impl<'de> Deserialize<'de> for ConfirmationEmailBody {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>
+    {
+            let raw = String::deserialize(deserializer)?;
+            Self::parse(raw).map_err(D::Error::custom)
+    }
+}
+
+impl AsRef<str> for ConfirmationEmailBody {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
 }
