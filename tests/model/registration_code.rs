@@ -1,4 +1,4 @@
-use authen::{model::confirmation_code::ConfirmationCode, utils::generation::generate_confirmation_code};
+use authen::{model::confirmation_code::ConfirmationCode, auth::otp::generate_confirmation_code};
 
 #[derive(Debug, Clone)]
 struct ValidConfirmationCodeFixture(pub String);

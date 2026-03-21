@@ -2,7 +2,7 @@ use argon2::Argon2;
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::verify, error::query::user::UserPasswordVerificationError};
+use crate::{auth::hash::verify_string_with_hash, error::query::user::UserPasswordVerificationError};
 
 /// Verify a user password with the one in the database.
 #[instrument(name = "Verifing users password code", skip(db_conn))]
@@ -22,5 +22,5 @@ pub async fn verify_user_password<'a, A: Acquire<'a, Database = Postgres>>(
         .map_err(|_| UserPasswordVerificationError::NotExists)?;
     let hash = row.0;
 
-    Ok(verify(password, &hash, argon2_instance))
+    Ok(verify_string_with_hash(password, &hash, argon2_instance))
 }

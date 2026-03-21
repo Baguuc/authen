@@ -1,5 +1,5 @@
 use argon2::Argon2;
-use authen::{crypto::hash, settings::{Settings, database::DatabaseSettings}, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
+use authen::{auth::hash::hash_string, settings::{Settings, database::DatabaseSettings}, startup::Application, telemetry::{get_tracing_subscriber, init_tracing_subscriber}};
 use reqwest::{Client, Response};
 use secrecy::Secret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -139,7 +139,7 @@ pub async fn create_active_user<'a>(db_conn: &PgPool, argon2_instance: &Argon2<'
     let _ = sqlx::query("INSERT INTO users (id, email, password_hash, active) VALUES ($1, $2, $3, true);")
         .bind(Uuid::new_v4())
         .bind(&email)
-        .bind(&hash(&password, argon2_instance).unwrap())
+        .bind(&hash_string(&password, argon2_instance).unwrap())
         .execute(db_conn)
         .await;
 }

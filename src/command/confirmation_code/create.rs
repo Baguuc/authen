@@ -2,7 +2,7 @@ use argon2::Argon2;
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::hash, error::command::confirmation_code::ConfirmationCodeCreationError, model::confirmation_code_type::ConfirmationCodeType, utils::generation::generate_confirmation_code};
+use crate::{auth::{hash::hash_string, otp::generate_confirmation_code}, error::command::confirmation_code::ConfirmationCodeCreationError, model::confirmation_code_type::ConfirmationCodeType};
 
 /// Command to generate a new registration code and save it in the database, returning its and itself.
 #[instrument(name = "Creating a registration code", skip(db_conn))]
@@ -19,7 +19,7 @@ pub async fn create_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(
         .as_ref()
         .to_string();
     // can unwrap because the argon errors are generally environment based rather than input based.
-    let hashed = hash(&code, argon2_instance).unwrap();
+    let hashed = hash_string(&code, argon2_instance).unwrap();
     
     // the rest should be filled out by postgres automatically
     let sql = "INSERT INTO confirmation_codes (id, code, user_id, _type) VALUES ($1, $2, $3, $4) RETURNING id, code;";

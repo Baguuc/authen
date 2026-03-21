@@ -2,7 +2,7 @@ use argon2::Argon2;
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
-use crate::{crypto::verify, error::query::confirmation_code::ConfirmationCodeVerificationError, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}};
+use crate::{auth::hash::verify_string_with_hash, error::query::confirmation_code::ConfirmationCodeVerificationError, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}};
 
 /// Verify a registration code with the one in the database.
 #[instrument(name = "Verifing a registration code", skip(db_conn, code))]
@@ -25,5 +25,5 @@ pub async fn verify_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(
         .map_err(|_| ConfirmationCodeVerificationError::NotExists)?;
     let hash = row.0;
 
-    Ok(verify(&code.as_ref().to_string(), &hash, &argon2_instance))
+    Ok(verify_string_with_hash(&code.as_ref().to_string(), &hash, &argon2_instance))
 }

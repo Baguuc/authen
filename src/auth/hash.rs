@@ -3,7 +3,7 @@ use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_ha
 /// Utility to hash anything using Argon2.
 /// Made with the specific purpose to have standard function across the codebase, so in case
 /// of parameters change everything stays in sync.
-pub fn hash(s: &String, argon2_instance: &Argon2) -> Result<String, Error> {
+pub fn hash_string(s: &String, argon2_instance: &Argon2) -> Result<String, Error> {
     let s = s.as_bytes();
     let salt = SaltString::generate(&mut OsRng);
 
@@ -15,7 +15,7 @@ pub fn hash(s: &String, argon2_instance: &Argon2) -> Result<String, Error> {
 /// Utility to validate a Argon2 hash.
 /// Made with the specific purpose to have standard function across the codebase, so in case
 /// of parameters change everything stays in sync.
-pub fn verify(s: &String, hash: &str, argon2_instance: &Argon2) -> bool {
+pub fn verify_string_with_hash(s: &String, hash: &str, argon2_instance: &Argon2) -> bool {
     let password_hash = match PasswordHash::parse(hash, Encoding::B64) {
         Ok(hash) => hash,
         Err(_) => return false,
