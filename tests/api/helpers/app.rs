@@ -97,6 +97,22 @@ impl TestApp {
             .await
     }
 
+    /// Send the request to GET /api/session route for testing purposes
+    pub async fn get_session(http_client: &Client, address: &String, authorization_method: String, token: Option<String>, fields: Vec<String>) -> Result<Response, reqwest::Error> {
+        let mut builder = http_client
+            // Use the returned application address
+            .get(&format!("{}/api/session?fields={}", address, fields.join(",")))
+            .header("content-type", "application/json");
+
+        if let Some(token) = token {
+            builder = builder.header("authorization", format!("{} {}", authorization_method, token))
+        }
+
+        builder
+            .send()
+            .await
+    }
+
     /// Send the request to POST /api/confirmations/login/{} route for testing purposes
     pub async fn post_confirmations_login(
         http_client: &Client,

@@ -40,6 +40,7 @@ reqwest = { version = "0.13.2", default-features = false, features = [
 serde_urlencoded = "0.7.1"
 jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 chrono = { version = "0.4.44", features = ["serde"] }
+futures-util = "0.3.32"
 
 [dev-dependencies]
 quickcheck = "1.1.0"

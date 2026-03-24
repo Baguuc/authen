@@ -303,6 +303,7 @@ dependencies = [
  "chrono",
  "config",
  "fake",
+ "futures-util",
  "jsonwebtoken",
  "quickcheck",
  "quickcheck_macros",
