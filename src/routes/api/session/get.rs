@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{auth::jwt::deserialize_claims_from_user_token, error::{api::session::SessionGetInfoError, query::user::RetrieveUserError}, model::{comma_separated_vec::CommaSeparatedVec}, query::user::{get_user_id::get_user_id_from_email, is_active::is_user_active, retrieve::retrieve_user, verify_password::verify_user_password}, settings::Settings, utils::error::log_map};
+use crate::{auth::jwt::deserialize_claims_from_user_token, error::{api::session::SessionGetInfoError, query::user::RetrieveUserError}, extractor::user_token::UserTokenExtractor, model::comma_separated_vec::CommaSeparatedVec, query::user::{get_user_id::get_user_id_from_email, is_active::is_user_active, retrieve::retrieve_user, verify_password::verify_user_password}, settings::Settings, utils::error::log_map};
 
 #[derive(Deserialize, Debug)]
 pub struct QueryBody {
@@ -22,39 +22,23 @@ pub struct ResponseBody {
 }
 
 /// Session info retrieval endpoint available @ GET /api/session
-#[instrument(name = "Retrieving session info", skip(db_conn, config))]
+#[instrument(name = "Retrieving session info", skip(db_conn, config, user_token))]
 pub async fn get_session(
     Query(query): Query<QueryBody>,
     db_conn: Data<PgPool>,
     config: Data<Settings>,
-    req: HttpRequest
+    user_token: UserTokenExtractor
 ) -> actix_web::Result<HttpResponse, SessionGetInfoError> {
     tracing::debug!("Acquiring the database connection.");
     let mut db_conn = db_conn.acquire()
         .await
         .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), SessionGetInfoError::UnexpectedError))?;
 
-    tracing::info!("Getting the user token.");
-    let authorization_header = match req.headers().get("authorization") {
-        Some(h) => h.to_str()
-            .map_err(|err| log_map(err, SessionGetInfoError::UnexpectedError))?
-            .to_string(),
-        None => return Err(SessionGetInfoError::NoToken)
-    };
-
-    tracing::info!("Got authorization header: '{}'", authorization_header);
-
-    if !authorization_header.starts_with("Bearer ") {
-        return Err(SessionGetInfoError::InvalidToken);
-    }
-
-    let token = &authorization_header.strip_prefix("Bearer ").unwrap();
-
     tracing::info!("Decoding user token.");
     let claims = match deserialize_claims_from_user_token(&
         config.jwt.hashing_key,
         &config.jwt_validation(),
-        token
+        user_token.as_ref()
     ) {
         Ok(claims) => claims,
         Err(_) => return Err(SessionGetInfoError::InvalidToken)
