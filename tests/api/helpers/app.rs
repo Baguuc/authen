@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::LazyLock};
 
 use authen::{settings::Settings, startup::Application};
 use reqwest::{Client, Response};
+use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -113,7 +114,30 @@ impl TestApp {
             .await
     }
 
-    /// Send the request to POST /api/confirmations/login/{} route for testing purposes
+    /// Send the request to GET /api/session route for testing purposes
+    pub async fn put_session_user_password(http_client: &Client, address: &String, authorization_method: String, token: Option<String>, password: Option<String>, new_password: Option<String>) -> Result<Response, reqwest::Error> {
+        let mut builder = http_client
+            // Use the returned application address
+            .patch(&format!("{}/api/session/user", address))
+            .header("content-type", "application/json");
+
+        if let Some(token) = token {
+            builder = builder.header("authorization", format!("{} {}", authorization_method, token))
+        }
+
+        let body = json!({
+            "password": password,
+            "new_password": new_password
+        });
+
+        builder
+            .json(&body)
+            .send()
+            .await
+    }
+    
+
+    /// Send the requestw to POST /api/confirmations/login/{} route for testing purposes
     pub async fn post_confirmations_login(
         http_client: &Client,
         address: &String,
