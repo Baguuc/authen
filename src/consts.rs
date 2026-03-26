@@ -15,3 +15,7 @@ pub const DEFAULT_REGISTRATION_EMAIL_HTML_BODY: &str = "Verify your account usin
 pub const DEFAULT_LOGIN_EMAIL_SUBJECT: &str = "Confirm login to your account";
 pub const DEFAULT_LOGIN_EMAIL_TEXT_BODY: &str = "Confirm login to your account using the code: %code%.";
 pub const DEFAULT_LOGIN_EMAIL_HTML_BODY: &str = "Confirm login to your account using the code <b>%code%</b>";
+
+pub const DEFAULT_USER_PASSWORD_UPDATE_EMAIL_SUBJECT: &str = "Confirm password update";
+pub const DEFAULT_USER_PASSWORD_UPDATE_EMAIL_TEXT_BODY: &str = "Confirm password update on your account using the following confirmation code: %code%.";
+pub const DEFAULT_USER_PASSWORD_UPDATE_EMAIL_HTML_BODY: &str = "Confirm password update on your account using the following confirmation code <b>%code%</b>.";

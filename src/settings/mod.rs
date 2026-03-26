@@ -8,7 +8,7 @@ use ::argon2::Argon2;
 use chrono::Duration;
 use jsonwebtoken::{Header, Validation};
 use sqlx::postgres::PgConnectOptions;
-use crate::{consts::{DEFAULT_LOGIN_EMAIL_HTML_BODY, DEFAULT_LOGIN_EMAIL_SUBJECT, DEFAULT_LOGIN_EMAIL_TEXT_BODY, DEFAULT_REGISTRATION_EMAIL_HTML_BODY, DEFAULT_REGISTRATION_EMAIL_SUBJECT, DEFAULT_REGISTRATION_EMAIL_TEXT_BODY}, settings::{application::ApplicationSettings, argon2::ArgonSettings, database::DatabaseSettings, email::{ConfirmationEmailBody, ConfirmationEmailSettings, EmailSettings}, jwt::JwtSettings}};
+use crate::{consts::{DEFAULT_LOGIN_EMAIL_HTML_BODY, DEFAULT_LOGIN_EMAIL_SUBJECT, DEFAULT_LOGIN_EMAIL_TEXT_BODY, DEFAULT_REGISTRATION_EMAIL_HTML_BODY, DEFAULT_REGISTRATION_EMAIL_SUBJECT, DEFAULT_REGISTRATION_EMAIL_TEXT_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_HTML_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_SUBJECT, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_TEXT_BODY}, settings::{application::ApplicationSettings, argon2::ArgonSettings, database::DatabaseSettings, email::{ConfirmationEmailBody, ConfirmationEmailSettings, EmailSettings}, jwt::JwtSettings}};
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
@@ -96,6 +96,19 @@ impl Settings {
                 subject: String::from(DEFAULT_LOGIN_EMAIL_SUBJECT),
                 text_body: ConfirmationEmailBody::parse(String::from(DEFAULT_LOGIN_EMAIL_TEXT_BODY)).unwrap(),
                 html_body: ConfirmationEmailBody::parse(String::from(DEFAULT_LOGIN_EMAIL_HTML_BODY)).unwrap(),
+            }
+        }
+    }
+
+     /// Get the configuration of user password update confirmation email or its defaults if not configured.
+    pub fn user_password_update_confirmation_email(&self) -> ConfirmationEmailSettings {
+        if let Some(email) = self.email.user_password_update.clone() {
+            email
+        } else {
+            ConfirmationEmailSettings {
+                subject: String::from(DEFAULT_USER_PASSWORD_UPDATE_EMAIL_SUBJECT),
+                text_body: ConfirmationEmailBody::parse(String::from(DEFAULT_USER_PASSWORD_UPDATE_EMAIL_TEXT_BODY)).unwrap(),
+                html_body: ConfirmationEmailBody::parse(String::from(DEFAULT_USER_PASSWORD_UPDATE_EMAIL_HTML_BODY)).unwrap(),
             }
         }
     }

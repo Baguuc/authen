@@ -6,7 +6,8 @@ pub struct EmailSettings {
     pub server: EmailServerSettings,
     pub sender: Email,
     pub registration: Option<ConfirmationEmailSettings>,
-    pub login: Option<ConfirmationEmailSettings>
+    pub login: Option<ConfirmationEmailSettings>,
+    pub user_password_update: Option<ConfirmationEmailSettings>
 }
 
 #[derive(serde::Deserialize, Clone)]
