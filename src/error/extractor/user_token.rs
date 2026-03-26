@@ -1,19 +1,21 @@
+use actix_web::{ResponseError, http::StatusCode};
+
 /// Represents one of the errors that can happen during extraction of the JWT token from HTTP request's headers.
 #[derive(thiserror::Error, Debug)]
 pub enum UserTokenExtractionError {
     /// This means that the authorization header was not found in the request.
-    #[error("authorization_not_found")]
+    #[error("AUTHORIZATION_NOT_FOUND")]
     NotFound,
     /// This means that the authorization header was found, but it was malformed.
-    #[error("invalid_authorization")]
+    #[error("INVALID_AUTHORIZATION_HEADER_VALUE")]
     Invalid,
     /// This means that the authorization header was not of type `Bearer`.
-    #[error("wrong_authorization_type")]
+    #[error("WRONG_AUTHORIZATION_TYPE")]
     WrongType,
 }
 
-impl actix_web::error::ResponseError for UserTokenExtractionError {
-    fn error_response(&self) -> actix_web::HttpResponse {
-        actix_web::HttpResponse::BadRequest().json(serde_json::json!({ "code": self.to_string() }))
+impl ResponseError for UserTokenExtractionError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        StatusCode::UNAUTHORIZED
     }
 }
