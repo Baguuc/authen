@@ -118,7 +118,7 @@ impl TestApp {
     pub async fn put_session_user_password(http_client: &Client, address: &String, authorization_method: String, token: Option<String>, password: Option<String>, new_password: Option<String>) -> Result<Response, reqwest::Error> {
         let mut builder = http_client
             // Use the returned application address
-            .patch(&format!("{}/api/session/user", address))
+            .put(&format!("{}/api/session/user/password", address))
             .header("content-type", "application/json");
 
         if let Some(token) = token {

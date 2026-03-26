@@ -51,3 +51,24 @@ impl actix_web::ResponseError for SessionGetInfoError {
         }
     }
 }
+
+/// Enum modelling errors that can occur during updating session user's password.
+#[derive(Debug, thiserror::Error)]
+pub enum SessionUserUpdatePasswordError {
+    #[error("UNAUTHORIZED")]
+    Unauthorized,
+    #[error("INVALID_PASSWORD")]
+    InvalidPassword,
+    #[error("UNEXPECTED_ERROR")]
+    UnexpectedError
+}
+
+impl actix_web::ResponseError for SessionUserUpdatePasswordError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        match self {
+            Self::Unauthorized => StatusCode::UNAUTHORIZED,
+            Self::InvalidPassword => StatusCode::FORBIDDEN,
+            Self::UnexpectedError => StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
+}

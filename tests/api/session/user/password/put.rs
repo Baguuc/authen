@@ -1,5 +1,5 @@
 use authen::auth::jwt::generate_user_token;
-use fake::{Fake, faker::{internet::ar_sa::{Password, SafeEmail}, lorem::en::Word}};
+use fake::{Fake, faker::{internet::en::{SafeEmail, Password}, lorem::en::Word}};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -167,7 +167,7 @@ async fn put_session_user_password_rejects_no_token() {
 #[tokio::test]
 async fn put_session_user_password_rejects_invalid_token() {
     // arrange
-    let (app, _, http_client, config, _) = init().await;
+    let (app, _, http_client, _, _) = init().await;
 
     // act
     let response = TestApp::put_session_user_password(
@@ -214,7 +214,7 @@ async fn put_session_user_password_rejects_no_password() {
     .unwrap();
 
     // assert
-    assert_eq!(response.status(), 401);
+    assert_eq!(response.status(), 400);
 }
 
 #[tokio::test]

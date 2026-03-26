@@ -1,5 +1,6 @@
 use crate::clients::email::EmailClient;
 use crate::routes::api::session::get::get_session;
+use crate::routes::api::session::user::password::put::put_session_user_password;
 use crate::settings::Settings;
 use crate::routes::api::login_confirmations::post::post_confirmations_login;
 use crate::routes::api::session::post::post_session;
@@ -88,6 +89,7 @@ impl Application {
                     )
                     .route("/session", web::post().to(post_session))
                     .route("/session", web::get().to(get_session))
+                    .route("/session/user/password", web::put().to(put_session_user_password))
                 )
         })
         .listen(listener)?

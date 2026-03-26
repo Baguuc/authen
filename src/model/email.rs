@@ -1,9 +1,9 @@
-use serde::{Deserialize, de::Error};
+use serde::{Deserialize, Serialize, de::Error};
 use validator::ValidateEmail;
 
 /// The model representing a valid user email.
 /// Used for parsing emails.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Email(String);
 
 impl Email {

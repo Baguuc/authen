@@ -14,7 +14,7 @@ static TRACING: LazyLock<()> = LazyLock::new(|| {
     let subscriber_name = "test".to_string();
 
     let subscriber = get_tracing_subscriber(subscriber_name, default_filter_level, std::io::stdout);
-        init_tracing_subscriber(subscriber);
+    init_tracing_subscriber(subscriber);
 });
 
 /// init the system before test

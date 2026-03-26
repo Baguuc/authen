@@ -3,14 +3,16 @@ use std::fmt::Debug;
 /// An enum modelling every type of confirmation code, made for better reusability.
 pub enum ConfirmationCodeType {
     Registration,
-    Login
+    Login,
+    UpdateUserPassword
 }
 
 impl AsRef<str> for ConfirmationCodeType {
     fn as_ref(&self) -> &str {
         match self {
             Self::Registration => "registration",
-            Self::Login => "login"
+            Self::Login => "login",
+            Self::UpdateUserPassword => "update_user_password"
         }
     }
 }
