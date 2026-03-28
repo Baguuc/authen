@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{auth::{hash::hash_string, jwt::deserialize_claims_from_user_token}, clients::email::EmailClient, command::{confirmation_code::create::create_confirmation_code, update_data::create::add_update_data_to_confirmation_code}, error::{api::session::{SessionGetInfoError, SessionUserUpdatePasswordError}, query::user::RetrieveUserError}, extractor::user_token::UserTokenExtractor, model::{comma_separated_vec::CommaSeparatedVec, confirmation_code_type::ConfirmationCodeType, email::Email}, query::user::{get_user_id::get_user_id_from_email, is_active::is_user_active, retrieve::retrieve_user, verify_password::verify_user_password}, settings::Settings, utils::error::log_map};
+use crate::{auth::{hash::hash_string, jwt::deserialize_claims_from_user_token}, clients::email::EmailClient, command::{confirmation_code::create::create_confirmation_code, update_data::create::add_update_data_to_confirmation_code}, error::{api::session::SessionUserUpdatePasswordError, query::user::RetrieveUserError}, extractor::user_token::UserTokenExtractor, model::{comma_separated_vec::CommaSeparatedVec, confirmation_code_type::ConfirmationCodeType, email::Email}, query::user::{get_user_id::get_user_id_from_email, is_active::is_user_active, retrieve::retrieve_user, verify_password::verify_user_password}, settings::Settings, utils::error::log_map};
 
 #[derive(Deserialize, Debug)]
 pub struct JsonBody {

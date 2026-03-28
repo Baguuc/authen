@@ -1,10 +1,10 @@
-use actix_web::{HttpRequest, HttpResponse, web::{Data, Query}};
+use actix_web::{HttpResponse, web::{Data, Query}};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{auth::jwt::deserialize_claims_from_user_token, error::{api::session::SessionGetInfoError, query::user::RetrieveUserError}, extractor::user_token::UserTokenExtractor, model::comma_separated_vec::CommaSeparatedVec, query::user::{get_user_id::get_user_id_from_email, is_active::is_user_active, retrieve::retrieve_user, verify_password::verify_user_password}, settings::Settings, utils::error::log_map};
+use crate::{auth::jwt::deserialize_claims_from_user_token, error::{api::session::SessionGetInfoError, query::user::RetrieveUserError}, extractor::user_token::UserTokenExtractor, model::comma_separated_vec::CommaSeparatedVec, query::user::retrieve::retrieve_user, settings::Settings, utils::error::log_map};
 
 #[derive(Deserialize, Debug)]
 pub struct QueryBody {

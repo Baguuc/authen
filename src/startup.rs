@@ -3,7 +3,7 @@ use crate::routes::api::confirmations::login::post::post_confirmations_login;
 use crate::routes::api::confirmations::registration::delete::delete_confirmations_registration;
 use crate::routes::api::confirmations::registration::post::post_confirmations_registration;
 use crate::routes::api::confirmations::user_update::password::post::post_confirmations_user_update_password;
-use crate::routes::api::session::get::get_session;
+use crate::routes::api::session::user::get::get_session;
 use crate::routes::api::session::user::password::put::put_session_user_password;
 use crate::settings::Settings;
 use crate::routes::api::session::post::post_session;
@@ -79,6 +79,13 @@ impl Application {
                 .service(web::scope("/api")
                     .route("/health", web::get().to(health_check))
                     .route("/users", web::post().to(post_users))
+                    .service(web::scope("/session")
+                        .route("", web::post().to(post_session))
+                        .service(web::scope("/user")
+                            .route("", web::get().to(get_session))
+                            .route("/password", web::put().to(put_session_user_password))
+                        )
+                    )
                     .service(web::scope("/confirmations")
                         .service(web::scope("/registration")
                             .route("/{confirmation_id}", web::post().to(post_confirmations_registration))
@@ -93,9 +100,6 @@ impl Application {
                             )
                         )
                     )
-                    .route("/session", web::post().to(post_session))
-                    .route("/session", web::get().to(get_session))
-                    .route("/session/user/password", web::put().to(put_session_user_password))
                 )
         })
         .listen(listener)?
