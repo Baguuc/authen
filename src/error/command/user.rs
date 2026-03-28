@@ -16,3 +16,10 @@ pub enum UserDeletionError {
     #[error("Database error: {0}")]
     Sqlx(#[from] sqlx::Error)
 }
+
+/// Enum modelling every error that can happen while updating a user's password.
+#[derive(thiserror::Error, Debug)]
+pub enum UserPasswordUpdateError {
+    #[error("Database error: {0}")]
+    Sqlx(#[from] sqlx::Error)
+}
