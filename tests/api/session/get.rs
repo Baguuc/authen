@@ -19,8 +19,11 @@ struct LoginConfirmationResponseBody {
 
 #[derive(serde::Deserialize)]
 struct SessionInfoResponseBody {
+    #[allow(unused)]
     id: Uuid,
+    #[allow(unused)]
     email: Email,
+    #[allow(unused)]
     password_hash: String
 }
 

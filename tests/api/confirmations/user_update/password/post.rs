@@ -1,8 +1,7 @@
 use authen::auth::{jwt::generate_user_token, otp::generate_confirmation_code};
 use fake::{Fake, faker::{internet::en::{Password, SafeEmail}, lorem::en::Word}};
-use sqlx::Row;
 use uuid::Uuid;
-use crate::helpers::{app::TestApp, database::{commands::{create_active_user, get_user_password_hash}, queries::{get_confirmation_code_count, get_update_data_count}}, init, mock::{get_registration_confirmation_code_from_request, get_request_from_mock_server, get_user_password_update_confirmation_code_from_request}};
+use crate::helpers::{app::TestApp, database::{commands::{create_active_user, get_user_password_hash}, queries::{get_confirmation_code_count, get_update_data_count}}, init, mock::{get_request_from_mock_server, get_user_password_update_confirmation_code_from_request}};
 
 #[derive(serde::Deserialize)]
 struct RegistrationResponseBody {
