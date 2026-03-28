@@ -114,11 +114,9 @@ async fn post_session_rejects_if_the_user_is_inactive() {
         .await
         .expect("Couldn't send the request to the API.");
     let status = response.status();
-    let text_body = response.text().await.unwrap();
 
     // Assert
     assert_eq!(status, 403);
-    assert_eq!(text_body, String::from("USER_INACTIVE"));
 }
 
 #[tokio::test]

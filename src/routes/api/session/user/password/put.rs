@@ -40,7 +40,7 @@ pub async fn put_session_user_password(
         user_token.as_ref()
     ) {
         Ok(claims) => claims,
-        Err(_) => return Err(SessionUserUpdatePasswordError::Unauthorized)
+        Err(_) => return Err(SessionUserUpdatePasswordError::InvalidToken)
     };
     let user_id = claims.sub;
 
