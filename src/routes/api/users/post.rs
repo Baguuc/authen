@@ -42,7 +42,7 @@ pub async fn post_users(
         &mut *transaction,
         &argon2_instance,
         body.email.as_ref(),
-        body.password.expose_secret()
+        &body.password
     )
         .await
         .map_err(|err| {

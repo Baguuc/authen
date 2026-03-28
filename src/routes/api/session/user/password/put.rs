@@ -45,7 +45,7 @@ pub async fn put_session_user_password(
     let user_id = claims.sub;
 
     let argon2_instance = config.argon2_instance();
-    match verify_user_password(&mut transaction, &argon2_instance, &user_id, &body.password.expose_secret()).await {
+    match verify_user_password(&mut transaction, &argon2_instance, &user_id, &body.password).await {
         Ok(false) => return Err(SessionUserUpdatePasswordError::InvalidPassword),
         Err(err) => return Err(log_map(err, SessionUserUpdatePasswordError::UnexpectedError)),
         _ => ()
