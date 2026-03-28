@@ -82,7 +82,7 @@ pub async fn put_session_user_password(
         Err(err) => return Err(log_map(err, SessionUserUpdatePasswordError::UnexpectedError)),
     };
 
-    let email_config = config.registration_confirmation_email();
+    let email_config = config.user_password_update_confirmation_email();
     let subject = String::from(email_config.subject.clone());
     let text_body = String::from(email_config.text_body.as_ref().replace("%code%", &code));
     let html_body = String::from(email_config.html_body.as_ref().replace("%code%", &code));

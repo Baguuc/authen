@@ -4,17 +4,6 @@ use crate::error::extractor::user_token::UserTokenExtractionError;
 
 /// Extracts the user JWT token from HttpRequest with the extractor pattern.
 /// Example:
-/// ```rust
-/// async fn controller(
-///     token: TokenExtractor,
-///     // ...
-/// ) -> HttpResponse {
-///     // this is how to access the value of extracted token
-///     let token = token.0;
-///     
-///     // ...
-/// }
-/// ```
 pub struct UserTokenExtractor(String);
 
 impl UserTokenExtractor {

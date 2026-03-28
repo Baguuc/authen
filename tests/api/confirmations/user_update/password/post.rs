@@ -36,6 +36,8 @@ async fn post_confirmations_user_update_password_changes_user_password() {
 
     let recieved_request = get_request_from_mock_server(&mock_server, 0).await;
     let confirmation_code = get_user_password_update_confirmation_code_from_request(recieved_request, config).await;
+    
+    println!("\n\n\n{}\n\n\n", confirmation_code);
 
     // try confirming with wrong code
     let response = TestApp::post_confirmations_user_update_password(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
@@ -154,7 +156,7 @@ async fn post_confirmations_user_update_password_rejects_invalid_confirmation_id
         response.status()
     };
 
-    assert_eq!(status, 400);
+    assert_eq!(status, 404);
 }
 
 #[tokio::test]

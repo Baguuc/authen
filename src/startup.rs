@@ -1,11 +1,12 @@
 use crate::clients::email::EmailClient;
+use crate::routes::api::confirmations::login::post::post_confirmations_login;
+use crate::routes::api::confirmations::registration::delete::delete_confirmations_registration;
+use crate::routes::api::confirmations::registration::post::post_confirmations_registration;
+use crate::routes::api::confirmations::user_update::password::post::post_confirmations_user_update_password;
 use crate::routes::api::session::get::get_session;
 use crate::routes::api::session::user::password::put::put_session_user_password;
 use crate::settings::Settings;
-use crate::routes::api::login_confirmations::post::post_confirmations_login;
 use crate::routes::api::session::post::post_session;
-use crate::routes::api::registration_confirmations::delete::delete_confirmations_registration;
-use crate::routes::api::registration_confirmations::post::post_confirmations_registration;
 use crate::routes::api::users::post::post_users;
 use crate::routes::api::health_check::health_check;
 use actix_web::dev::Server;
@@ -85,6 +86,11 @@ impl Application {
                         )
                         .service(web::scope("/login")
                             .route("/{confirmation_id}", web::post().to(post_confirmations_login))
+                        )
+                        .service(web::scope("/user_update")
+                            .service(web::scope("/password")
+                                .route("/{confirmation_id}", web::post().to(post_confirmations_user_update_password))
+                            )
                         )
                     )
                     .route("/session", web::post().to(post_session))
