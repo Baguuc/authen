@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod queries;
 
 use authen::settings::{Settings, database::DatabaseSettings};
 use secrecy::Secret;
