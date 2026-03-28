@@ -2,7 +2,7 @@ pub mod commands;
 pub mod queries;
 
 use authen::settings::{Settings, database::DatabaseSettings};
-use secrecy::Secret;
+use secrecy::SecretString;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 
 pub async fn configure_database(config: &mut Settings) -> PgPool {
@@ -10,7 +10,7 @@ pub async fn configure_database(config: &mut Settings) -> PgPool {
     let maintenance_settings = DatabaseSettings {
         database_name: String::from("postgres"),
         username: String::from("postgres"),
-        password: Secret::new(String::from("123")),
+        password: SecretString::from(String::from("123")),
         ..config.database.clone()
     };
     let mut connection = PgConnection::connect_with(&maintenance_settings.connect_options())

@@ -1,4 +1,4 @@
-use rand::{TryRngCore, rngs::OsRng};
+use argon2::password_hash::rand_core::{OsRng, RngCore};
 
 use crate::{consts::{CONFIRMATION_CODE_CHAR_POOL, CONFIRMATION_CODE_LENGTH}, model::confirmation_code::ConfirmationCode};
 

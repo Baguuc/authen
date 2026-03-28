@@ -1,5 +1,5 @@
 use argon2::Argon2;
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretString};
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
@@ -11,13 +11,13 @@ pub async fn create_user<'a, A: Acquire<'a, Database = Postgres>>(
     db_conn: A,
     argon2_instance: &Argon2<'a>,
     email: &String,
-    password: &Secret<String>
+    password: &SecretString
 ) -> Result<Uuid, UserCreationError> {
     let mut db_conn = db_conn.acquire().await?;
 
     let id = Uuid::new_v4();
     // can unwrap because the argon errors are generally environment based rather than input based.
-    let hashed_password = hash_string(password.expose_secret(), &argon2_instance)?;
+    let hashed_password = hash_string(&password.expose_secret().to_string(), &argon2_instance)?;
     
     // the rest should be filled out by postgres automatically
     let sql = "INSERT INTO users (id, email, password_hash) VALUES ($1, $2, $3) RETURNING id;";

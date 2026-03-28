@@ -1,5 +1,5 @@
 use actix_web::{HttpResponse, web::{Data, Json}};
-use secrecy::{ExposeSecret, Secret};
+use secrecy::SecretString;
 use serde::Deserialize;
 use sqlx::{Connection, PgPool, error::ErrorKind};
 use tracing::instrument;
@@ -15,7 +15,7 @@ pub struct ResponseBody {
 #[derive(Deserialize, Debug)]
 pub struct BodyData {
     email: Email,
-    password: Secret<String>
+    password: SecretString
 }
 
 /// User registration endpoint available @ POST /api/users

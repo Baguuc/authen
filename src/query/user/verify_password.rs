@@ -1,5 +1,5 @@
 use argon2::Argon2;
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretString};
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
@@ -11,7 +11,7 @@ pub async fn verify_user_password<'a, A: Acquire<'a, Database = Postgres>>(
     db_conn: A,
     argon2_instance: &Argon2<'a>,
     user_id: &Uuid,
-    password: &Secret<String>
+    password: &SecretString
 ) -> Result<bool, UserPasswordVerificationError> {
     let mut db_conn = db_conn.acquire().await?;
 
@@ -23,5 +23,5 @@ pub async fn verify_user_password<'a, A: Acquire<'a, Database = Postgres>>(
         .map_err(|_| UserPasswordVerificationError::NotExists)?;
     let hash = row.0;
 
-    Ok(verify_string_with_hash(password.expose_secret(), &hash, argon2_instance))
+    Ok(verify_string_with_hash(&password.expose_secret().to_string(), &hash, argon2_instance))
 }

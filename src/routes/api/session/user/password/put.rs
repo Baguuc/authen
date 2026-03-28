@@ -1,17 +1,17 @@
 use actix_web::{HttpResponse, web::{Data, Json}};
-use secrecy::{ExposeSecret, Secret};
+use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{auth::{hash::hash_string, jwt::deserialize_claims_from_user_token}, clients::email::EmailClient, command::{confirmation_code::create::create_confirmation_code, update_data::create::add_update_data_to_confirmation_code}, error::{api::session::SessionUserUpdatePasswordError, query::user::RetrieveUserError}, extractor::user_token::UserTokenExtractor, model::{comma_separated_vec::CommaSeparatedVec, confirmation_code_type::ConfirmationCodeType, email::Email}, query::user::{get_user_id::get_user_id_from_email, is_active::is_user_active, retrieve::retrieve_user, verify_password::verify_user_password}, settings::Settings, utils::error::log_map};
+use crate::{auth::{hash::hash_string, jwt::deserialize_claims_from_user_token}, clients::email::EmailClient, command::{confirmation_code::create::create_confirmation_code, update_data::create::add_update_data_to_confirmation_code}, error::{api::session::SessionUserUpdatePasswordError, query::user::RetrieveUserError}, extractor::user_token::UserTokenExtractor, model::{confirmation_code_type::ConfirmationCodeType, email::Email}, query::user::{retrieve::retrieve_user, verify_password::verify_user_password}, settings::Settings, utils::error::log_map};
 
 #[derive(Deserialize, Debug)]
 pub struct JsonBody {
-    password: Secret<String>,
-    new_password: Secret<String>
+    password: SecretString,
+    new_password: SecretString
 }
 
 #[derive(Serialize, Debug)]
@@ -72,7 +72,7 @@ pub async fn put_session_user_password(
         // unexpected because no error should happen
         .map_err(|err| log_map(err, SessionUserUpdatePasswordError::UnexpectedError))?;
 
-    let hashed_new_password = match hash_string(body.new_password.expose_secret(), &argon2_instance) {
+    let hashed_new_password = match hash_string(&body.new_password.expose_secret().to_string(), &argon2_instance) {
         Ok(hash) => hash,
         Err(err) => return Err(log_map(err, SessionUserUpdatePasswordError::UnexpectedError)),
     };

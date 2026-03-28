@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Connection, PgPool};
 use tracing::instrument;
 use uuid::Uuid;
-use secrecy::Secret;
+use secrecy::SecretString;
 use crate::{clients::email::EmailClient, command::confirmation_code::create::create_confirmation_code, error::{api::session::SessionCreationError, query::user::{GetUserIdError, UserCheckIsActiveError, UserPasswordVerificationError}}, model::{confirmation_code_type::ConfirmationCodeType, email::Email}, query::user::{get_user_id::get_user_id_from_email, is_active::is_user_active, verify_password::verify_user_password}, settings::Settings, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's json body.
 #[derive(Deserialize, Debug)]
 pub struct JsonData {
     email: Email,
-    password: Secret<String>
+    password: SecretString
 }
 
 #[derive(Serialize, Debug)]
