@@ -6,3 +6,12 @@ pub enum PermissionCreateError {
     #[error("Database error: {0}")]
     Sqlx(#[from] sqlx::Error)
 }
+
+/// Enum modelling every error that can happen during deleting a permission from the database.
+#[derive(thiserror::Error, Debug)]
+pub enum PermissionDeleteError {
+    #[error("NOT_EXISTS")]
+    NotExists,
+    #[error("Database error: {0}")]
+    Sqlx(#[from] sqlx::Error)
+}
