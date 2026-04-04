@@ -3,12 +3,13 @@ pub mod database;
 pub mod email;
 pub mod jwt;
 pub mod argon2;
+pub mod permissions;
 
 use ::argon2::Argon2;
 use chrono::Duration;
 use jsonwebtoken::{Header, Validation};
 use sqlx::postgres::PgConnectOptions;
-use crate::{consts::{DEFAULT_LOGIN_EMAIL_HTML_BODY, DEFAULT_LOGIN_EMAIL_SUBJECT, DEFAULT_LOGIN_EMAIL_TEXT_BODY, DEFAULT_REGISTRATION_EMAIL_HTML_BODY, DEFAULT_REGISTRATION_EMAIL_SUBJECT, DEFAULT_REGISTRATION_EMAIL_TEXT_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_HTML_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_SUBJECT, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_TEXT_BODY}, settings::{application::ApplicationSettings, argon2::ArgonSettings, database::DatabaseSettings, email::{ConfirmationEmailBody, ConfirmationEmailSettings, EmailSettings}, jwt::JwtSettings}};
+use crate::{consts::{DEFAULT_LOGIN_EMAIL_HTML_BODY, DEFAULT_LOGIN_EMAIL_SUBJECT, DEFAULT_LOGIN_EMAIL_TEXT_BODY, DEFAULT_REGISTRATION_EMAIL_HTML_BODY, DEFAULT_REGISTRATION_EMAIL_SUBJECT, DEFAULT_REGISTRATION_EMAIL_TEXT_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_HTML_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_SUBJECT, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_TEXT_BODY}, settings::{application::ApplicationSettings, argon2::ArgonSettings, database::DatabaseSettings, email::{ConfirmationEmailBody, ConfirmationEmailSettings, EmailSettings}, jwt::JwtSettings, permissions::PermissionSettings}};
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
@@ -16,7 +17,8 @@ pub struct Settings {
     pub application: ApplicationSettings,
     pub email: EmailSettings,
     pub jwt: JwtSettings,
-    pub argon2: Option<ArgonSettings>
+    pub argon2: Option<ArgonSettings>,
+    pub permissions: PermissionSettings
 }
 
 impl Settings {
