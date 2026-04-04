@@ -1,4 +1,5 @@
 use crate::clients::email::EmailClient;
+use crate::command::permissions::sync::sync_permissions;
 use crate::routes::api::confirmations::login::post::post_confirmations_login;
 use crate::routes::api::confirmations::registration::delete::delete_confirmations_registration;
 use crate::routes::api::confirmations::registration::post::post_confirmations_registration;
@@ -33,8 +34,17 @@ impl Application {
         );
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
+
+        // init connections
+        let db_pool = Self::database_connection(configuration.clone());
+        let email_client = Self::email_client(configuration.clone());
+
+        sync_permissions(&db_pool, &configuration.permissions).await?;
+
         let server = Self::get_server(
             listener,
+            db_pool,
+            email_client,
             configuration
         )
         .await?;
@@ -64,11 +74,13 @@ impl Application {
     /// Get the server (actix_web::HttpServer) instance
     async fn get_server(
         listener: TcpListener,
-        configuration: Settings
+        db_pool: PgPool,
+        email_client: EmailClient,
+        config: Settings
     ) -> Result<Server, anyhow::Error> {
-        let config = Data::new(configuration.clone());
-        let db_pool = Data::new(Self::database_connection(configuration.clone()));
-        let email_client = Data::new(Self::email_client(configuration.clone()));
+        let config = Data::new(config);
+        let db_pool = Data::new(db_pool);
+        let email_client = Data::new(email_client);
         
         let server = HttpServer::new(move || {
             App::new()

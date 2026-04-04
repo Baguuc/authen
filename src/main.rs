@@ -5,11 +5,16 @@ use tokio::task::JoinError;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // init telemetry
     let subscriber = get_tracing_subscriber("authen".into(), "info".into(), std::io::stdout);
     init_tracing_subscriber(subscriber);
 
+    // parse config
     let configuration = Settings::parse().expect("Failed to read the configuration.");
+
+    // configure the application
     let application = Application::configure(configuration.clone()).await?;
+    // start the application
     let application_task = tokio::spawn(application.run());
 
     // this is in place in case that in future we might need to add a dedicated worker thread.
