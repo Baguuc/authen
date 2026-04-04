@@ -15,3 +15,10 @@ pub enum PermissionDeleteError {
     #[error("Database error: {0}")]
     Sqlx(#[from] sqlx::Error)
 }
+
+/// Enum modelling every error that can happen during syncing permissions with the config.
+#[derive(thiserror::Error, Debug)]
+pub enum PermissionSyncError {
+    #[error("Database error: {0}")]
+    Sqlx(#[from] sqlx::Error)
+}
