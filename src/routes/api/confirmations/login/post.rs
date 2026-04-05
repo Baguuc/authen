@@ -38,15 +38,15 @@ pub async fn post_confirmations_login(
     let jwt_header = config.jwt_header();
     
     
-    // 1. Acquire the connection
-    tracing::info!("Acquiring the database connection.");
-    let mut db_conn = db_conn.acquire()
+    // 1. Begin a transaction
+    tracing::info!("Beginning a transaction.");
+    let mut transaction = db_conn.begin()
         .await
         .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), ConfirmationError::UnexpectedError))?;
 
 
     // 2. Verify the confirmation code
-    match verify_confirmation_code(&mut *db_conn, argon2_instance, code_id, code, ConfirmationCodeType::Login).await {
+    match verify_confirmation_code(&mut *transaction, argon2_instance, code_id, code, ConfirmationCodeType::Login).await {
         Ok(false) => return Err(ConfirmationError::WrongCode),
         Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
         Err(ConfirmationCodeVerificationError::NotExists) => return Err(ConfirmationError::ConfirmationNotExists),
@@ -55,7 +55,7 @@ pub async fn post_confirmations_login(
 
 
     // 3. Get user id from registration code
-    let user_id = get_user_id_from_registration_code(&mut *db_conn, code_id, ConfirmationCodeType::Login).await
+    let user_id = get_user_id_from_registration_code(&mut *transaction, code_id, ConfirmationCodeType::Login).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
 
@@ -65,11 +65,18 @@ pub async fn post_confirmations_login(
 
 
     // 5. Delete the current (already used) confirmation code
-    delete_confirmation_code(&mut *db_conn, code_id, ConfirmationCodeType::Login)
+    delete_confirmation_code(&mut *transaction, code_id, ConfirmationCodeType::Login)
         .await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
+    
+    // 6. Commit the transaction
+    tracing::info!("Commiting the transaction");
+    transaction.commit()
+        .await
+        .map_err(|err| log_map(format!("Cannot commit the transaction: {}", err), ConfirmationError::UnexpectedError))?;
 
+    
     Ok(HttpResponse::Ok().json(ResponseBody {
         token
     }))
