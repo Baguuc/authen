@@ -28,9 +28,10 @@ pub struct Application {
 impl Application {
     /// Creates a connection to Postgres database and binds TCP listener using given configuration.
     pub async fn configure(configuration: Settings) -> Result<Self, anyhow::Error> {
+        let application_settings = configuration.application_settings();
         let address = format!(
             "{}:{}",
-            configuration.application.host, configuration.application.port
+            application_settings.host, application_settings.port
         );
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();

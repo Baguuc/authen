@@ -1,3 +1,5 @@
+use jsonwebtoken::Algorithm;
+
 // OTP codes configuration
 pub const CONFIRMATION_CODE_LENGTH: usize = 6;
 pub const CONFIRMATION_CODE_CHAR_POOL: &[char] = &[
@@ -19,3 +21,6 @@ pub const DEFAULT_LOGIN_EMAIL_HTML_BODY: &str = "Confirm login to your account u
 pub const DEFAULT_USER_PASSWORD_UPDATE_EMAIL_SUBJECT: &str = "Confirm password update";
 pub const DEFAULT_USER_PASSWORD_UPDATE_EMAIL_TEXT_BODY: &str = "Confirm password update on your account using the following confirmation code: %code%.";
 pub const DEFAULT_USER_PASSWORD_UPDATE_EMAIL_HTML_BODY: &str = "Confirm password update on your account using the following confirmation code <b>%code%</b>.";
+
+pub const DEFAULT_JWT_HASHING_ALGORITH: Algorithm = Algorithm::HS256;
+pub const DEFAULT_JWT_EXPIRY_TIME_MINUTES: i64 = 90;

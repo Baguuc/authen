@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::LazyLock};
 
-use authen::{settings::Settings, startup::Application};
+use authen::{settings::{Settings, application::ApplicationSettings}, startup::Application};
 use reqwest::{Client, Response};
 use serde_json::json;
 use sqlx::PgPool;
@@ -190,7 +190,11 @@ pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
         // Use a different database for each test case
         c.database.database_name = Uuid::new_v4().to_string();
         // Use a random OS port
-        c.application.port = 0;
+        let application_settings = c.application_settings();
+        c.application = Some(ApplicationSettings {
+            port: 0,
+            ..application_settings
+        });
 
         // override the email server config to use wiremock's
         if let Some(url) = override_email_server_url {

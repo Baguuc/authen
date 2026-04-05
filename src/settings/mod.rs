@@ -9,16 +9,16 @@ use ::argon2::Argon2;
 use chrono::Duration;
 use jsonwebtoken::{Header, Validation};
 use sqlx::postgres::PgConnectOptions;
-use crate::{consts::{DEFAULT_LOGIN_EMAIL_HTML_BODY, DEFAULT_LOGIN_EMAIL_SUBJECT, DEFAULT_LOGIN_EMAIL_TEXT_BODY, DEFAULT_REGISTRATION_EMAIL_HTML_BODY, DEFAULT_REGISTRATION_EMAIL_SUBJECT, DEFAULT_REGISTRATION_EMAIL_TEXT_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_HTML_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_SUBJECT, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_TEXT_BODY}, settings::{application::ApplicationSettings, argon2::ArgonSettings, database::DatabaseSettings, email::{ConfirmationEmailBody, ConfirmationEmailSettings, EmailSettings}, jwt::JwtSettings, permissions::PermissionSettings}};
+use crate::{consts::{DEFAULT_JWT_EXPIRY_TIME_MINUTES, DEFAULT_JWT_HASHING_ALGORITH, DEFAULT_LOGIN_EMAIL_HTML_BODY, DEFAULT_LOGIN_EMAIL_SUBJECT, DEFAULT_LOGIN_EMAIL_TEXT_BODY, DEFAULT_REGISTRATION_EMAIL_HTML_BODY, DEFAULT_REGISTRATION_EMAIL_SUBJECT, DEFAULT_REGISTRATION_EMAIL_TEXT_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_HTML_BODY, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_SUBJECT, DEFAULT_USER_PASSWORD_UPDATE_EMAIL_TEXT_BODY}, settings::{application::ApplicationSettings, argon2::ArgonSettings, database::DatabaseSettings, email::{ConfirmationEmailBody, ConfirmationEmailSettings, EmailSettings}, jwt::{JwtSettings, PartializedJwtSettings}, permissions::PermissionSettings}};
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
-    pub application: ApplicationSettings,
     pub email: EmailSettings,
-    pub jwt: JwtSettings,
-    pub argon2: Option<ArgonSettings>,
-    pub permissions: PermissionSettings
+    pub permissions: PermissionSettings,
+    pub jwt: PartializedJwtSettings,
+    pub application: Option<ApplicationSettings>,
+    pub argon2: Option<ArgonSettings>
 }
 
 impl Settings {
@@ -48,6 +48,31 @@ impl Settings {
         self.database.connect_options()
     }
 
+    /// Get either the configured application settings or the defaults
+    pub fn application_settings(&self) -> ApplicationSettings {
+        if let Some(settings) = self.application.clone() {
+            settings
+        } else {
+            ApplicationSettings {
+                port: 3000,
+                host: String::from("0.0.0.0"),
+                base_url: String::from("http://localhost")
+            }
+        }
+    }
+    /// Get either the configured JWT settings or the defaults
+    pub fn jwt_settings(&self) -> JwtSettings {
+        let algorithm = self.jwt.algorithm.unwrap_or(DEFAULT_JWT_HASHING_ALGORITH);
+        let expires_in = self.jwt.expires_in.unwrap_or(DEFAULT_JWT_EXPIRY_TIME_MINUTES);
+        let hashing_key = self.jwt.hashing_key.clone();
+
+        JwtSettings {
+            algorithm,
+            expires_in,
+            hashing_key 
+        }
+    }
+
     /// Construct a argon2 instance from settings if specified, return Argon2::default() if None.
     pub fn argon2_instance(&self) -> Argon2 {
         if let Some(settings) = self.argon2.clone() {
@@ -63,17 +88,17 @@ impl Settings {
 
     /// Construct a JWT header from jwt settings
     pub fn jwt_header(&self) -> Header {
-        Header::new(self.jwt.algorithm)
+        Header::new(self.jwt_settings().algorithm)
     }
 
     /// Construct a JWT validation from jwt settings
     pub fn jwt_validation(&self) -> Validation {
-        Validation::new(self.jwt.algorithm)
+        Validation::new(self.jwt_settings().algorithm)
     }
 
     /// Get a chrono::Duration from configuration's value of expires_in
     pub fn jwt_expires_in(&self) -> Duration {
-        Duration::minutes(self.jwt.expires_in)
+        Duration::minutes(self.jwt_settings().expires_in)
     }
 
     /// Get the configuration of registration confirmation email or its defaults if not configured.
