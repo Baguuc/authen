@@ -1,5 +1,5 @@
 use actix_web::{HttpResponse, web::{Data, Json}};
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
@@ -88,7 +88,7 @@ pub async fn put_session_user_password(
 
     
     // 7. Hash the password
-    let hashed_new_password = match hash_string(&body.new_password.expose_secret().to_string(), &argon2_instance) {
+    let hashed_new_password = match hash_string(&body.new_password, &argon2_instance) {
         Ok(hash) => hash,
         Err(err) => return Err(log_map(err, SessionUserUpdatePasswordError::UnexpectedError)),
     };

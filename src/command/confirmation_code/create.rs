@@ -1,4 +1,5 @@
 use argon2::Argon2;
+use secrecy::SecretString;
 use sqlx::{Acquire, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
@@ -19,7 +20,7 @@ pub async fn create_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(
         .as_ref()
         .to_string();
     // can unwrap because the argon errors are generally environment based rather than input based.
-    let hashed = hash_string(&code, argon2_instance).unwrap();
+    let hashed = hash_string(&SecretString::from(code.clone()), argon2_instance).unwrap();
     
     // the rest should be filled out by postgres automatically
     let sql = "INSERT INTO confirmation_codes (id, code, user_id, _type) VALUES ($1, $2, $3, $4) RETURNING id, code;";

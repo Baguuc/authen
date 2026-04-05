@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::model::user_token_claims::UserTokenClaims;
 
 /// Generate a jwt token based on the user_id and key
+#[tracing::instrument(name = "Generating a user token.")]
 pub fn generate_user_token(
     key: &String,
     jwt_header: &Header,
@@ -25,6 +26,7 @@ pub fn generate_user_token(
 }
 
 /// Deserialize claims from a JWT token.
+#[tracing::instrument(name = "Decoding a user token.")]
 pub fn deserialize_claims_from_user_token(
     key: &String,
     jwt_validation: &Validation,

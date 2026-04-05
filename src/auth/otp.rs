@@ -4,6 +4,7 @@ use crate::{consts::{CONFIRMATION_CODE_CHAR_POOL, CONFIRMATION_CODE_LENGTH}, mod
 
 /// Generates a confirmation code from OsRng.
 /// Returns None if there was an error generating the sequence.
+#[tracing::instrument(name = "Generating a confirmation code string.")]
 pub fn generate_confirmation_code() -> ConfirmationCode {
     let mut rng = OsRng;
     let mut buf = vec![0u8; CONFIRMATION_CODE_LENGTH];
