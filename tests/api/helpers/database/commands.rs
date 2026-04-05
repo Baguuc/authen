@@ -1,5 +1,6 @@
 use argon2::Argon2;
 use authen::auth::hash::hash_string;
+use secrecy::SecretString;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -9,7 +10,7 @@ pub async fn create_active_user<'a>(db_conn: &PgPool, argon2_instance: &Argon2<'
     let _ = sqlx::query("INSERT INTO users (id, email, password_hash, active) VALUES ($1, $2, $3, true) RETURNING id;")
         .bind(&id)
         .bind(&email)
-        .bind(&hash_string(&password, argon2_instance).unwrap())
+        .bind(&hash_string(&SecretString::from(password.clone()), argon2_instance).unwrap())
         .execute(db_conn)
         .await;
     id
@@ -21,7 +22,7 @@ pub async fn create_inactive_user<'a>(db_conn: &PgPool, argon2_instance: &Argon2
     let _ = sqlx::query("INSERT INTO users (id, email, password_hash, active) VALUES ($1, $2, $3, false) RETURNING id;")
         .bind(&id)
         .bind(&email)
-        .bind(&hash_string(&password, argon2_instance).unwrap())
+        .bind(&hash_string(&SecretString::from(password.clone()), argon2_instance).unwrap())
         .execute(db_conn)
         .await;
     id
