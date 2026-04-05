@@ -4,3 +4,4 @@ pub mod confirmation_code_type;
 pub mod user_token_claims;
 pub mod user;
 pub mod comma_separated_vec;
+pub mod hashed_string;

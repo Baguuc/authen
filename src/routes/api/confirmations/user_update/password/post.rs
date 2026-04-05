@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{command::{confirmation_code::delete::delete_confirmation_code, update_data::delete::delete_update_data, user::update_password_hash::update_password_hash}, error::{api::confirmation_code::ConfirmationError, query::confirmation_code::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::{confirmation_code::{get_user_id::get_user_id_from_registration_code, verify::verify_confirmation_code}, update_data::get_update_data::get_update_data}, settings::Settings, utils::error::log_map};
+use crate::{command::{confirmation_code::delete::delete_confirmation_code, update_data::delete::delete_update_data, user::update_password_hash::update_password_hash}, error::{api::confirmation_code::ConfirmationError, query::confirmation_code::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType, hashed_string::HashedString}, query::{confirmation_code::{get_user_id::get_user_id_from_registration_code, verify::verify_confirmation_code}, update_data::get_update_data::get_update_data}, settings::Settings, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's path.
 #[derive(Deserialize, Debug)]
@@ -69,7 +69,7 @@ pub async fn post_confirmations_user_update_password(
 
 
     // 5. Update the user's password hash in the database.
-    update_password_hash(&mut *transaction, &user_id, &new_password_hash).await
+    update_password_hash(&mut *transaction, &user_id, &HashedString(new_password_hash)).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
 
