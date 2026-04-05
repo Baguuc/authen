@@ -1,7 +1,7 @@
 use actix_web::{HttpResponse, web::{Data, Json}};
 use secrecy::SecretString;
 use serde::Deserialize;
-use sqlx::{Connection, PgPool, error::ErrorKind};
+use sqlx::{Connection, PgPool};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -47,14 +47,9 @@ pub async fn post_users(
         .await
         .map_err(|err| {
             match err {
+                UserCreationError::UserExists => return UserRegistrationError::UserExists,
                 UserCreationError::Argon2(err) => log_map(err, UserRegistrationError::UnexpectedError),
-                UserCreationError::Sqlx(err) => match err.as_database_error() {
-                    Some(err) => match err.kind() {
-                        ErrorKind::UniqueViolation => UserRegistrationError::UserExists,
-                        _ => log_map(err, UserRegistrationError::UnexpectedError)
-                    },
-                    None => log_map(err, UserRegistrationError::UnexpectedError)
-                }
+                UserCreationError::Sqlx(err) => log_map(err, UserRegistrationError::UnexpectedError)
             }
         })?;
     
