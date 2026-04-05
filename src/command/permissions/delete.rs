@@ -3,7 +3,7 @@ use tracing::instrument;
 use crate::error::command::permission::PermissionDeleteError;
 
 /// Command to delete a permission from the database.
-#[instrument(name = "Inserting a permission into the database.", skip(db_conn))]
+#[instrument(name = "Deleting a permission from the database.", skip(db_conn))]
 pub async fn delete_permission<'a, A: Acquire<'a, Database = Postgres>>(
     db_conn: A,
     name: &String

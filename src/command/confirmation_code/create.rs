@@ -4,8 +4,8 @@ use tracing::instrument;
 use uuid::Uuid;
 use crate::{auth::{hash::hash_string, otp::generate_confirmation_code}, error::command::confirmation_code::ConfirmationCodeCreationError, model::confirmation_code_type::ConfirmationCodeType};
 
-/// Command to generate a new registration code and save it in the database, returning its and itself.
-#[instrument(name = "Creating a registration code", skip(db_conn))]
+/// Command to generate a new confirmation code and save it in the database, returning its id and itself.
+#[instrument(name = "Generating a confirmation code.", skip(db_conn))]
 pub async fn create_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(
     db_conn: A,
     argon2_instance: &Argon2<'a>,

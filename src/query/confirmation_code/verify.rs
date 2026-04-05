@@ -4,8 +4,8 @@ use tracing::instrument;
 use uuid::Uuid;
 use crate::{auth::hash::verify_string_with_hash, error::query::confirmation_code::ConfirmationCodeVerificationError, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}};
 
-/// Verify a registration code with the one in the database.
-#[instrument(name = "Verifing a registration code", skip(db_conn, code))]
+/// Verify a confirmation code with the one in the database.
+#[instrument(name = "Verifing a confirmation code.", skip(db_conn, code))]
 pub async fn verify_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(
     db_conn: A,
     argon2_instance: Argon2<'a>,

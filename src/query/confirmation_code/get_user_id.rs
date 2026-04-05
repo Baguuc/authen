@@ -4,8 +4,8 @@ use uuid::Uuid;
 
 use crate::{error::query::confirmation_code::GetUserIdFromConfirmationCodeRecordError, model::confirmation_code_type::ConfirmationCodeType};
 
-/// Get user id from registration confirmation record in the database.
-#[instrument(name = "Retrieving user id from confirmation code", skip(db_conn))]
+/// Get user id from confirmation code record in the database.
+#[instrument(name = "Retrieving user id from a confirmation code.", skip(db_conn))]
 pub async fn get_user_id_from_registration_code<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, registration_id: Uuid, _type: ConfirmationCodeType) -> Result<Uuid, GetUserIdFromConfirmationCodeRecordError> {
     let mut db_conn = db_conn.acquire().await?;
 

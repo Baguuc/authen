@@ -3,8 +3,9 @@ use tracing::instrument;
 use uuid::Uuid;
 use crate::error::command::update_data::UpdateDataAddError;
 
-/// Command to generate a new registration code and save it in the database, returning its and itself.
-#[instrument(name = "Creating a registration code", skip(db_conn))]
+/// Command to attach related update data to a confirmation code in the database.
+/// Used for update routes.
+#[instrument(name = "Attaching update data to confirmation code.", skip(db_conn))]
 pub async fn add_update_data_to_confirmation_code<'a, A: Acquire<'a, Database = Postgres>>(
     db_conn: A,
     confirmation_id: &Uuid,

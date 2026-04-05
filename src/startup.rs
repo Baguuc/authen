@@ -9,7 +9,7 @@ use crate::routes::api::session::user::password::put::put_session_user_password;
 use crate::settings::Settings;
 use crate::routes::api::session::post::post_session;
 use crate::routes::api::users::post::post_users;
-use crate::routes::api::health_check::health_check;
+use crate::routes::api::health_check::check_health;
 use actix_web::dev::Server;
 use actix_web::web::Data;
 use actix_web::{web, App, HttpServer};
@@ -89,7 +89,7 @@ impl Application {
                 .app_data(db_pool.clone())
                 .app_data(email_client.clone())
                 .service(web::scope("/api")
-                    .route("/health", web::get().to(health_check))
+                    .route("/health", web::get().to(check_health))
                     .route("/users", web::post().to(post_users))
                     .service(web::scope("/session")
                         .route("", web::post().to(post_session))

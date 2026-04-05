@@ -32,17 +32,18 @@ pub async fn post_confirmations_user_update_password(
     db_conn: Data<PgPool>,
     config: Data<Settings>
 ) -> actix_web::Result<HttpResponse, ConfirmationError> {
-    tracing::debug!("Begining a transaction");
+    let code_id = path_data.confirmation_id;
+    let code = body.code;
+    let argon2_instance = config.argon2_instance();
+
+    // 1. Begin a transaction
+    tracing::info!("Begining a transaction");
     let mut transaction = db_conn.begin()
         .await
         .map_err(|err| log_map(format!("Cannot begin the transaction.\n{}", err), ConfirmationError::UnexpectedError))?;
 
-    let code_id = path_data.confirmation_id;
-    let code = body.code;
 
-    let argon2_instance = config.argon2_instance();
-
-    tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
+    // 2. Verify the confirmation code
     match verify_confirmation_code(&mut *transaction, argon2_instance, code_id, code, ConfirmationCodeType::UpdateUserPassword).await {
         Ok(false) => return Err(ConfirmationError::WrongCode),
         Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
@@ -50,11 +51,13 @@ pub async fn post_confirmations_user_update_password(
         _ => ()
     };
 
-    tracing::info!("Retrieving the user id.");
+
+    // 3. Retrieve the user id from confirmation code.
     let user_id = get_user_id_from_registration_code(&mut *transaction, code_id, ConfirmationCodeType::UpdateUserPassword).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
-    tracing::info!("Retrieving update data.");
+
+    // 4. Retrieve the data to update from confirmation code.
     let data = get_update_data(&mut *transaction, &code_id).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
@@ -64,21 +67,29 @@ pub async fn post_confirmations_user_update_password(
         .ok_or(log_map(String::from("Update data's password_hash field is not a string."), ConfirmationError::UnexpectedError))?
         .to_string();
 
-    tracing::info!("Updating the user's password hash.");
+
+    // 5. Update the user's password hash in the database.
     update_password_hash(&mut *transaction, &user_id, &new_password_hash).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
-    tracing::info!("Deleting the confirmation code.");
+
+    // 6. Delete the update data from the database
     delete_update_data(&mut *transaction, &code_id)
         .await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
+
+    
+    // 7. Delete the confirmation code from the database.
     delete_confirmation_code(&mut *transaction, code_id, ConfirmationCodeType::UpdateUserPassword)
         .await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
+    // 8. Commit the transaction.
+    tracing::info!("Commiting the transaction");
     transaction.commit()
         .await
         .map_err(|err| log_map(format!("Cannot commit the transaction: {}", err), ConfirmationError::UnexpectedError))?;
 
+    
     Ok(HttpResponse::Ok().finish())
 }

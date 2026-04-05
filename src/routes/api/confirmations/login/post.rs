@@ -24,7 +24,7 @@ pub struct ResponseBody {
     token: String
 }
 
-/// User login confirmation endpoint available @ POST /api/confirmations/login/{}
+/// User login confirmation endpoint
 #[instrument(name = "Confirming a user login.", skip(db_conn, config))]
 pub async fn post_confirmations_login(
     path_data: Path<PathData>,
@@ -32,17 +32,20 @@ pub async fn post_confirmations_login(
     db_conn: Data<PgPool>,
     config: Data<Settings>
 ) -> actix_web::Result<HttpResponse, ConfirmationError> {
-    tracing::debug!("Acquiring the database connection.");
-    let mut db_conn = db_conn.acquire()
-        .await
-        .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), ConfirmationError::UnexpectedError))?;
-
     let code_id = path_data.confirmation_id;
     let code = body.code;
     let argon2_instance = config.argon2_instance();
     let jwt_header = config.jwt_header();
+    
+    
+    // 1. Acquire the connection
+    tracing::info!("Acquiring the database connection.");
+    let mut db_conn = db_conn.acquire()
+        .await
+        .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), ConfirmationError::UnexpectedError))?;
 
-    tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
+
+    // 2. Verify the confirmation code
     match verify_confirmation_code(&mut *db_conn, argon2_instance, code_id, code, ConfirmationCodeType::Login).await {
         Ok(false) => return Err(ConfirmationError::WrongCode),
         Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
@@ -50,18 +53,22 @@ pub async fn post_confirmations_login(
         _ => ()
     };
 
-    tracing::info!("Retrieving the user id.");
+
+    // 3. Get user id from registration code
     let user_id = get_user_id_from_registration_code(&mut *db_conn, code_id, ConfirmationCodeType::Login).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
-    tracing::info!("Generating the token.");
+
+    // 4. Generate the user token
     let token = generate_user_token(&config.jwt.hashing_key, &jwt_header, config.jwt_expires_in(), user_id)
         .map_err(|err| log_map(format!("Cannot generate the user token, JWT error: {}", err), ConfirmationError::UnexpectedError))?;
 
-    tracing::info!("Deleting the confirmation code.");
+
+    // 5. Delete the current (already used) confirmation code
     delete_confirmation_code(&mut *db_conn, code_id, ConfirmationCodeType::Login)
         .await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
+
 
     Ok(HttpResponse::Ok().json(ResponseBody {
         token

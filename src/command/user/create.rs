@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{auth::hash::hash_string, error::command::user::UserCreationError};
 
 /// Command to hash the user's password and save the user in the database, returning its id.
-#[instrument(name = "Inserting the user into database", skip(db_conn))]
+#[instrument(name = "Inserting the user into database.", skip(db_conn))]
 pub async fn create_user<'a, A: Acquire<'a, Database = Postgres>>(
     db_conn: A,
     argon2_instance: &Argon2<'a>,

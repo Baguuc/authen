@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::error::command::user::UserDeletionError;
 
 /// Command to delete a user from the database.
-#[instrument(name = "Deleting a user from the database", skip(db_conn))]
+#[instrument(name = "Deleting a user from the database.", skip(db_conn))]
 pub async fn delete_user<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, id: Uuid) -> Result<(), UserDeletionError> {
     let mut db_conn = db_conn.acquire().await?;
 

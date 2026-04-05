@@ -21,20 +21,25 @@ pub struct ResponseBody {
     password_hash: Option<String>
 }
 
-/// Session info retrieval endpoint available @ GET /api/session
-#[instrument(name = "Retrieving session info", skip(db_conn, config, user_token))]
+/// Session info retrieval endpoint
+#[instrument(name = "Retrieving session user's info", skip(db_conn, config, user_token))]
 pub async fn get_session(
     Query(query): Query<QueryBody>,
     db_conn: Data<PgPool>,
     config: Data<Settings>,
     user_token: UserTokenExtractor
 ) -> actix_web::Result<HttpResponse, SessionGetInfoError> {
+    let fields = query.fields.as_ref();
+
+    
+    // 1. Acquire the database connection
     tracing::debug!("Acquiring the database connection.");
     let mut db_conn = db_conn.acquire()
         .await
         .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), SessionGetInfoError::UnexpectedError))?;
 
-    tracing::info!("Decoding user token.");
+
+    // 2. Decode the user's token
     let claims = match deserialize_claims_from_user_token(&
         config.jwt.hashing_key,
         &config.jwt_validation(),
@@ -45,7 +50,8 @@ pub async fn get_session(
     };
     let user_id = claims.sub;
 
-    tracing::info!("Fetching user data.");
+
+    // 3. Retrieve user's data
     let user = match retrieve_user(&mut *db_conn, user_id).await {
         Ok(user) => user,
         // when the user from the token do not exist it implies that the token is invalid
@@ -53,15 +59,14 @@ pub async fn get_session(
         Err(RetrieveUserError::Sqlx(err)) => return log_map(err, Err(SessionGetInfoError::UnexpectedError))
     };
 
-    let fields = query.fields.as_ref();
-
+    
+    // 4. Construct the body
     let body = ResponseBody {
         id: fields.contains(&String::from("id")).then_some(user.id),
         email: fields.contains(&String::from("email")).then_some(user.email),
         password_hash: fields.contains(&String::from("password_hash")).then_some(user.password_hash),
     };
 
-    tracing::debug!("Responding with {:?}", body);
 
     Ok(HttpResponse::Ok().json(body))
 }

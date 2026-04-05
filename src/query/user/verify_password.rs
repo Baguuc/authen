@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{auth::hash::verify_string_with_hash, error::query::user::UserPasswordVerificationError};
 
 /// Verify a user password with the one in the database.
-#[instrument(name = "Verifing users password code", skip(db_conn))]
+#[instrument(name = "Verifing user's password.", skip(db_conn))]
 pub async fn verify_user_password<'a, A: Acquire<'a, Database = Postgres>>(
     db_conn: A,
     argon2_instance: &Argon2<'a>,

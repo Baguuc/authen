@@ -1,6 +1,6 @@
 use actix_web::{HttpResponse, web::{Path, Json, Data}};
 use serde::Deserialize;
-use sqlx::{Connection, PgPool};
+use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -18,30 +18,27 @@ pub struct JsonData {
     code: ConfirmationCode
 }
 
-/// User registration rejection endpoint available @ DELETE /api/confirmations/registration/{}
-#[instrument(name = "Rejecting a user registration.", skip(db_conn, config))]
+/// User registration rejection endpoint
+#[instrument(name = "Deleting a user's registration confirmation code.", skip(db_conn, config))]
 pub async fn delete_confirmations_registration(
     path_data: Path<PathData>,
     Json(body): Json<JsonData>,
     db_conn: Data<PgPool>,
     config: Data<Settings>
 ) -> actix_web::Result<HttpResponse, ConfirmationError> {
-    tracing::debug!("Acquiring the database connection.");
-    let mut db_conn = db_conn.acquire()
-        .await
-        .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), ConfirmationError::UnexpectedError))?;
+    let code_id = path_data.confirmation_id;
+    let code = body.code;
+    let argon2_instance = config.argon2_instance();
+    
 
-    tracing::debug!("Begining a transaction");
+    // 1. Begin a transaction
+    tracing::info!("Begining a transaction");
     let mut transaction = db_conn.begin()
         .await
         .map_err(|err| log_map(format!("Cannot begin the transaction.\n{}", err), ConfirmationError::UnexpectedError))?;
 
-    let code_id = path_data.confirmation_id;
-    let code = body.code;
 
-    let argon2_instance = config.argon2_instance();
-
-    tracing::info!("Verifying the registration code (code_id = {}, code = {}).", code_id, code.as_ref());
+    // 2. Verify if the confirmation code sent by the user matches the one in the database
     match verify_confirmation_code(&mut *transaction, argon2_instance, code_id, code, ConfirmationCodeType::Registration).await {
         Ok(false) => return Err(ConfirmationError::WrongCode),
         Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
@@ -49,23 +46,30 @@ pub async fn delete_confirmations_registration(
         _ => ()
     };
 
-    tracing::info!("Retrieving the user id.");
+    
+    // 3. Get ther user's id from confirmation id
     let user_id = get_user_id_from_registration_code(&mut transaction, code_id, ConfirmationCodeType::Registration).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
+
+    // 4. Delete the confirmation code.
     // delete the code first to not violate foreign key constraint
-    tracing::info!("Deleting the confirmation code.");
     delete_confirmation_code(&mut *transaction, code_id, ConfirmationCodeType::Registration)
         .await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
-    tracing::info!("Deleting the user.");
+
+    // 5. Delete the user from the database
     delete_user(&mut *transaction, user_id).await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
+
+    // 6. Commit the changes
+    tracing::info!("Commiting the transaction");
     transaction.commit()
         .await
         .map_err(|err| log_map(format!("Cannot commit the transaction: {}", err), ConfirmationError::UnexpectedError))?;
 
+    
     Ok(HttpResponse::Ok().finish())
 }

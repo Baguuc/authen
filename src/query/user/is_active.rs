@@ -3,8 +3,8 @@ use tracing::instrument;
 use uuid::Uuid;
 use crate::error::query::user::UserCheckIsActiveError;
 
-/// Check if user is active.
-#[instrument(name = "Checking user active status", skip(db_conn))]
+/// Check if a user is active.
+#[instrument(name = "Checking user's active status.", skip(db_conn))]
 pub async fn is_user_active<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, user_id: &Uuid) -> Result<bool, UserCheckIsActiveError> {
     let mut db_conn = db_conn.acquire().await?;
 

@@ -3,8 +3,8 @@ use tracing::instrument;
 use uuid::Uuid;
 use crate::error::command::update_data::UpdateDataAddError;
 
-/// Command to generate a new registration code and save it in the database, returning its and itself.
-#[instrument(name = "Creating a registration code", skip(db_conn))]
+/// Command remove a attached update data from a confirmation code in the database.
+#[instrument(name = "Removing an update data from a confirmation code.", skip(db_conn))]
 pub async fn delete_update_data<'a, A: Acquire<'a, Database = Postgres>>(
     db_conn: A,
     confirmation_id: &Uuid

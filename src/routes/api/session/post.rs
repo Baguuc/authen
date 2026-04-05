@@ -1,6 +1,6 @@
 use actix_web::{HttpResponse, web::{Json, Data}};
 use serde::{Deserialize, Serialize};
-use sqlx::{Connection, PgPool};
+use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 use secrecy::SecretString;
@@ -18,31 +18,33 @@ pub struct ResponseBody {
     confirmation_id: Uuid
 }
 
-/// User registration confirmation endpoint available @ POST /api/confirmations/registration/{}
-#[instrument(name = "Authenticating a user", skip(db_conn, email_client, config))]
+/// User session creating endpoint
+#[instrument(name = "Creating new user session.", skip(db_conn, email_client, config))]
 pub async fn post_session(
     Json(body): Json<JsonData>,
     db_conn: Data<PgPool>,
     email_client: Data<EmailClient>,
     config: Data<Settings>
 ) -> actix_web::Result<HttpResponse, SessionCreationError> {
-    tracing::debug!("Acquiring the database connection.");
-    let mut db_conn = db_conn.acquire()
-        .await
-        .map_err(|err| log_map(format!("Cannot acquire the connection to the database.\n{}", err), SessionCreationError::UnexpectedError))?;
+    let argon2_instance = config.argon2_instance();
+    let email_config = config.login_confirmation_email();
 
+
+    // 1. Begin a transaction
     tracing::debug!("Begining a transaction");
     let mut transaction = db_conn.begin()
         .await
         .map_err(|err| log_map(format!("Cannot begin the transaction.\n{}", err), SessionCreationError::UnexpectedError))?;
 
-    tracing::info!("Getting user id.");
+    
+    // 2. Retrieve the user's id
     let user_id = match get_user_id_from_email(&mut *transaction, &body.email).await {
         Err(GetUserIdError::NotExists) => return Err(SessionCreationError::UserNotExists),
         Err(GetUserIdError::Sqlx(err)) => return log_map(err, Err(SessionCreationError::UnexpectedError)),
         Ok(user_id) => user_id,
     };
 
+    // 3. Check if user is active
     match is_user_active(&mut *transaction, &user_id).await {
         Err(UserCheckIsActiveError::NotExists) => return Err(SessionCreationError::UserNotExists),
         Err(UserCheckIsActiveError::Sqlx(err)) => return log_map(err, Err(SessionCreationError::UnexpectedError)),
@@ -50,9 +52,8 @@ pub async fn post_session(
         _ => ()
     }
 
-    let argon2_instance = config.argon2_instance();
 
-    tracing::info!("Verifying the users password.");
+    // 4. Verify user's password
     match verify_user_password(&mut *transaction, &argon2_instance, &user_id, &body.password).await {
         Ok(false) => return Err(SessionCreationError::WrongPassword),
         Err(UserPasswordVerificationError::NotExists) => return Err(SessionCreationError::UserNotExists),
@@ -60,18 +61,21 @@ pub async fn post_session(
         _ => ()
     };
 
-    tracing::info!("Creating the confirmation code.");
+    
+    // 5. Create a confirmation code
     let (confirmation_id, code) = create_confirmation_code(&mut *transaction, &argon2_instance, user_id, ConfirmationCodeType::Login)
         .await
         // unexpected because no error should happen
         .map_err(|err| log_map(err, SessionCreationError::UnexpectedError))?;
 
-    let email_config = config.login_confirmation_email();
+
+    // 6. Send the confirmation code to user's email
+    tracing::info!("Sending the confirmation code.");
+    
     let subject = String::from(email_config.subject.clone());
     let text_body = String::from(email_config.text_body.as_ref().replace("%code%", &code));
     let html_body = String::from(email_config.html_body.as_ref().replace("%code%", &code));
 
-    tracing::info!("Sending the confirmation code.");
     let sender_email = config.email.sender.clone();
     let result = email_client.send_email(
         sender_email,
@@ -83,6 +87,7 @@ pub async fn post_session(
     )
     .await;
 
+    // 7. Match the result
     match result {
         Ok(_) => {
             // only commit when email was successful.

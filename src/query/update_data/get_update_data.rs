@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::error::query::update_data::GetUpdateDataError;
 
 /// Retrieve an update data row from database.
-#[instrument(name = "Retrieving update data.", skip(db_conn))]
+#[instrument(name = "Retrieving confirmation code's update data.", skip(db_conn))]
 pub async fn get_update_data<'a, A: Acquire<'a, Database = Postgres>>(db_conn: A, confirmation_id: &Uuid) -> Result<serde_json::Value, GetUpdateDataError> {
     let mut db_conn = db_conn.acquire().await?;
 
