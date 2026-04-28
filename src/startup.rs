@@ -4,6 +4,7 @@ use crate::routes::api::confirmations::login::delete::delete_confirmations_login
 use crate::routes::api::confirmations::login::post::post_confirmations_login;
 use crate::routes::api::confirmations::registration::delete::delete_confirmations_registration;
 use crate::routes::api::confirmations::registration::post::post_confirmations_registration;
+use crate::routes::api::confirmations::user_update::password::delete::delete_confirmations_user_update_password;
 use crate::routes::api::confirmations::user_update::password::post::post_confirmations_user_update_password;
 use crate::routes::api::session::user::get::get_session;
 use crate::routes::api::session::user::password::put::put_session_user_password;
@@ -112,6 +113,7 @@ impl Application {
                         .service(web::scope("/user_update")
                             .service(web::scope("/password")
                                 .route("/{confirmation_id}", web::post().to(post_confirmations_user_update_password))
+                                .route("/{confirmation_id}", web::delete().to(delete_confirmations_user_update_password))
                             )
                         )
                     )

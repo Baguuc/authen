@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{command::confirmation_code::delete::delete_confirmation_code, settings::Settings, error::{api::confirmation_code::ConfirmationError, query::confirmation_code::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::confirmation_code::{verify::verify_confirmation_code}, utils::error::log_map};
+use crate::{command::{confirmation_code::delete::delete_confirmation_code, update_data::delete::delete_update_data}, error::{api::confirmation_code::ConfirmationError, query::confirmation_code::ConfirmationCodeVerificationError}, model::{confirmation_code::ConfirmationCode, confirmation_code_type::ConfirmationCodeType}, query::confirmation_code::verify::verify_confirmation_code, settings::Settings, utils::error::log_map};
 
 /// Helper struct to deserialize data from request's path.
 #[derive(Deserialize, Debug)]
@@ -18,9 +18,9 @@ pub struct JsonData {
     code: ConfirmationCode
 }
 
-/// User login rejection endpoint
-#[instrument(name = "Deleting a user's login confirmation code.", skip(db_conn, config))]
-pub async fn delete_confirmations_login(
+/// User registration rejection endpoint
+#[instrument(name = "Deleting a user's password update confirmation code.", skip(db_conn, config))]
+pub async fn delete_confirmations_user_update_password(
     path_data: Path<PathData>,
     Json(body): Json<JsonData>,
     db_conn: Data<PgPool>,
@@ -39,21 +39,27 @@ pub async fn delete_confirmations_login(
 
 
     // 2. Verify if the confirmation code sent by the user matches the one in the database
-    match verify_confirmation_code(&mut *transaction, argon2_instance, code_id, code, ConfirmationCodeType::Login).await {
+    match verify_confirmation_code(&mut *transaction, argon2_instance, code_id, code, ConfirmationCodeType::UpdateUserPassword).await {
         Ok(false) => return Err(ConfirmationError::WrongCode),
         Err(ConfirmationCodeVerificationError::Sqlx(err)) => return log_map(err, Err(ConfirmationError::UnexpectedError)),
         Err(ConfirmationCodeVerificationError::NotExists) => return Err(ConfirmationError::ConfirmationNotExists),
         _ => ()
     };
 
+    
+    // 3. Delete the update data
+    // delete the udpate data first to not violate foreign key constraint
+    delete_update_data(&mut *transaction, &code_id).await
+        .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
-    // 3. Delete the confirmation code.
-    // delete the code first to not violate foreign key constraint
-    delete_confirmation_code(&mut *transaction, code_id, ConfirmationCodeType::Login)
+    
+    // 4. Delete the confirmation code.
+    delete_confirmation_code(&mut *transaction, code_id, ConfirmationCodeType::UpdateUserPassword)
         .await
         .map_err(|err| log_map(err, ConfirmationError::UnexpectedError))?;
 
-    // 4. Commit the changes
+
+    // 5. Commit the changes
     tracing::info!("Commiting the transaction");
     transaction.commit()
         .await
