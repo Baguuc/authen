@@ -9,7 +9,7 @@ struct RegistrationResponseBody {
 }
 
 #[tokio::test]
-async fn post_confirmations_user_update_password_changes_user_password() {
+async fn delete_confirmations_user_update_password_not_changes_user_password() {
     let (app, mock_server, http_client, config, mock) = init().await;
     mock.mount(&mock_server).await;
     let argon2_instance = config.argon2_instance();
@@ -35,9 +35,9 @@ async fn post_confirmations_user_update_password_changes_user_password() {
 
     let recieved_request = get_request_from_mock_server(&mock_server, 0).await;
     let confirmation_code = get_user_password_update_confirmation_code_from_request(recieved_request, config).await;
-
+    
     // try confirming with wrong code
-    let response = TestApp::post_confirmations_user_update_password(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
+    let response = TestApp::delete_confirmations_user_update_password(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
         .expect("Couldn't send the request to the API.");
     let status = response.status();
@@ -46,11 +46,11 @@ async fn post_confirmations_user_update_password_changes_user_password() {
     
     // Assert
     assert_eq!(status, 200);
-    assert_ne!(original_hash, new_hash);
+    assert_eq!(original_hash, new_hash);
 }
 
 #[tokio::test]
-async fn post_confirmations_user_update_password_deletes_the_code_and_update_data() {
+async fn delete_confirmations_user_update_password_deletes_the_code_and_update_data() {
     let (app, mock_server, http_client, config, mock) = init().await;
     mock.mount(&mock_server).await;
     let argon2_instance = config.argon2_instance();
@@ -76,7 +76,7 @@ async fn post_confirmations_user_update_password_deletes_the_code_and_update_dat
     let confirmation_code = get_user_password_update_confirmation_code_from_request(recieved_request, config).await;
 
     // try confirming with wrong code
-    let _ = TestApp::post_confirmations_user_update_password(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
+    let _ = TestApp::delete_confirmations_user_update_password(&http_client, &app.address, confirmation_id.to_string(), Some(confirmation_code))
         .await
         .expect("Couldn't send the request to the API.");
 
@@ -88,7 +88,7 @@ async fn post_confirmations_user_update_password_deletes_the_code_and_update_dat
 }
 
 #[tokio::test]
-async fn post_confirmations_user_update_password_rejects_wrong_code() {
+async fn delete_confirmations_user_update_password_rejects_wrong_code() {
     let (app, mock_server, http_client, config, mock) = init().await;
     mock.mount(&mock_server).await;
     let argon2_instance = config.argon2_instance();
@@ -111,7 +111,7 @@ async fn post_confirmations_user_update_password_rejects_wrong_code() {
     let confirmation_id = response.confirmation_id;
 
     // try confirming with wrong code
-    let response = TestApp::post_confirmations_user_update_password(&http_client, &app.address, confirmation_id.to_string(), Some(generate_confirmation_code().as_ref().to_string()))
+    let response = TestApp::delete_confirmations_user_update_password(&http_client, &app.address, confirmation_id.to_string(), Some(generate_confirmation_code().as_ref().to_string()))
         .await
         .expect("Couldn't send the request to the API.");
     let status = response.status();
@@ -120,14 +120,14 @@ async fn post_confirmations_user_update_password_rejects_wrong_code() {
 }
 
 #[tokio::test]
-async fn post_confirmations_user_update_password_rejects_request_with_no_code() {
+async fn delete_confirmations_user_update_password_rejects_request_with_no_code() {
     let (app, _, http_client, _, _mock) = init().await;
     
-    // try to post with no code
+    // try to delete with no code
     let status = {
         // no need to provide a existing id as its existance is checked after deserialization.
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::post_confirmations_user_update_password(&http_client, &app.address, id, None)
+        let response = TestApp::delete_confirmations_user_update_password(&http_client, &app.address, id, None)
             .await
             .expect("Couldn't send the request to the API.");
 
@@ -139,14 +139,14 @@ async fn post_confirmations_user_update_password_rejects_request_with_no_code() 
 }
 
 #[tokio::test]
-async fn post_confirmations_user_update_password_rejects_invalid_confirmation_id() {
+async fn delete_confirmations_user_update_password_rejects_invalid_confirmation_id() {
     let (app, _, http_client, _, _mock) = init().await;
 
     // Act
     // register the user
     // a word is not a valid Uuid obviously
     let status = {
-        let response = TestApp::post_confirmations_user_update_password(&http_client, &app.address, Word().fake(), None)
+        let response = TestApp::delete_confirmations_user_update_password(&http_client, &app.address, Word().fake(), None)
             .await
             .expect("Couldn't send the request to the API.");
         
@@ -157,7 +157,7 @@ async fn post_confirmations_user_update_password_rejects_invalid_confirmation_id
 }
 
 #[tokio::test]
-async fn post_confirmations_user_update_password_rejects_confirmation_id_not_existing() {
+async fn delete_confirmations_user_update_password_rejects_confirmation_id_not_existing() {
     let (app, _, http_client, _, _mock) = init().await;
 
     // Act
@@ -165,7 +165,7 @@ async fn post_confirmations_user_update_password_rejects_confirmation_id_not_exi
     let status = {
         // random Uuid that doesn't exist
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::post_confirmations_user_update_password(&http_client, &app.address, id, Some(String::from("123456")))
+        let response = TestApp::delete_confirmations_user_update_password(&http_client, &app.address, id, Some(String::from("123456")))
             .await
             .expect("Couldn't send the request to the API.");
         
@@ -176,14 +176,14 @@ async fn post_confirmations_user_update_password_rejects_confirmation_id_not_exi
 }
 
 #[tokio::test]
-async fn post_confirmations_user_update_password_rejects_code_with_invalid_chars() {
+async fn delete_confirmations_user_update_password_rejects_code_with_invalid_chars() {
     let (app, _, http_client, _, _mock) = init().await;
 
-    // try to post with invalid code
+    // try to delete with invalid code
     let status = {
         // no need to provide a existing id as its existance is checked after deserialization.
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::post_confirmations_user_update_password(&http_client, &app.address, id, Some(String::from("*&#-()")))
+        let response = TestApp::delete_confirmations_user_update_password(&http_client, &app.address, id, Some(String::from("*&#-()")))
             .await
             .expect("Couldn't send the request to the API.");
         
@@ -195,14 +195,14 @@ async fn post_confirmations_user_update_password_rejects_code_with_invalid_chars
 }
 
 #[tokio::test]
-async fn post_confirmations_user_update_password_rejects_code_with_invalid_lenght() {
+async fn delete_confirmations_user_update_password_rejects_code_with_invalid_lenght() {
     let (app, _, http_client, _, _mock) = init().await;
 
-    // try to post with invalid code lenght
+    // try to delete with invalid code lenght
     let status = {
         // no need to provide a existing id as its existance is checked after deserialization.
         let id = Uuid::new_v4().to_string();
-        let response = TestApp::post_confirmations_user_update_password(&http_client, &app.address, id, Some(String::from("123")))
+        let response = TestApp::delete_confirmations_user_update_password(&http_client, &app.address, id, Some(String::from("123")))
             .await
             .expect("Couldn't send the request to the API.");
         
