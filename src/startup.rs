@@ -1,5 +1,6 @@
 use crate::clients::email::EmailClient;
 use crate::command::permissions::sync::sync_permissions;
+use crate::routes::api::confirmations::login::delete::delete_confirmations_login;
 use crate::routes::api::confirmations::login::post::post_confirmations_login;
 use crate::routes::api::confirmations::registration::delete::delete_confirmations_registration;
 use crate::routes::api::confirmations::registration::post::post_confirmations_registration;
@@ -106,6 +107,7 @@ impl Application {
                         )
                         .service(web::scope("/login")
                             .route("/{confirmation_id}", web::post().to(post_confirmations_login))
+                            .route("/{confirmation_id}", web::delete().to(delete_confirmations_login))
                         )
                         .service(web::scope("/user_update")
                             .service(web::scope("/password")
