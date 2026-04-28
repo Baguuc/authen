@@ -179,6 +179,28 @@ impl TestApp {
             .send()
             .await
     }
+
+    /// Send the request to DELETE /api/confirmations/login/{} route for testing purposes
+    pub async fn delete_confirmations_login(
+        http_client: &Client,
+        address: &String,
+        confirmation_id: String,
+        confirmation_code: Option<String>
+    ) -> Result<Response, reqwest::Error> {
+        let mut body_map = HashMap::new();
+
+        if let Some(confirmation_code) = confirmation_code {
+            body_map.insert("code", confirmation_code);
+        };
+        
+        http_client
+            // Use the returned application address
+            .delete(&format!("{}/api/confirmations/login/{}", address, confirmation_id.to_string()))
+            .header("content-type", "application/json")
+            .json(&body_map)
+            .send()
+            .await
+    }
 }
 
 pub async fn spawn_app(override_email_server_url: Option<String>) -> TestApp {
